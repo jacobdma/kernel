@@ -14,7 +14,7 @@ export const SlashCommands = Extension.create({
         editor: this.editor,
         char: '/',
         items: ({ query }: { query: string }) =>
-          COMMANDS.filter(c => c.label.toLowerCase().includes(query.toLowerCase())),
+        COMMANDS.filter(c => c.label.toLowerCase().includes(query.toLowerCase())),
         command: ({ editor, range, props }: { editor: any; range: any; props: SlashCommand }) => {
           props.command({ editor, range })
         },

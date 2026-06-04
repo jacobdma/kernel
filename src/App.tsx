@@ -4,12 +4,16 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import { SlashCommands, COMMANDS } from './extensions/SlashCommands'
 import { TodoCommand } from './extensions/TodoCommand'
+import { CodeCommand } from './extensions/CodeCommand'
+import { FormattingCommands } from './extensions/FormattingCommands'
 import { useRef, useState } from 'react'
 import { db } from './db'
 import type { Note } from './db'
 import Sidebar from './Sidebar'
 
-COMMANDS.push(TodoCommand)
+COMMANDS.length = 0
+COMMANDS.push(TodoCommand, CodeCommand, ...FormattingCommands)
+console.log(COMMANDS)
 
 export default function App() {
   const [activeNoteId, setActiveNoteId] = useState<number | null>(null)
