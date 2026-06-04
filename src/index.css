@@ -4,3 +4,5 @@
 .tiptap h1 { font-size: 2em; font-weight: bold; margin: 0.5em 0; }
 .tiptap h2 { font-size: 1.5em; font-weight: bold; margin: 0.5em 0; }
 .tiptap h3 { font-size: 1.25em; font-weight: bold; margin: 0.5em 0; }
+.tiptap ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.tiptap ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5rem; }

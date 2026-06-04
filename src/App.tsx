@@ -1,9 +1,15 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
+import { SlashCommands, COMMANDS } from './extensions/SlashCommands'
+import { TodoCommand } from './extensions/TodoCommand'
 import { useRef, useState } from 'react'
 import { db } from './db'
 import type { Note } from './db'
 import Sidebar from './Sidebar'
+
+COMMANDS.push(TodoCommand)
 
 export default function App() {
   const [activeNoteId, setActiveNoteId] = useState<number | null>(null)
@@ -11,7 +17,7 @@ export default function App() {
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, TaskList, TaskItem.configure({ nested: true }), SlashCommands],
     content: '<p>Start typing...</p>',
     onUpdate({ editor }) {
       if (!activeNoteIdRef.current) return
