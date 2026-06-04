@@ -15,3 +15,7 @@
   font-family: monospace;
   font-size: 0.9em;
 }
+.tiptap .tag-mark {
+  color: #6366f1;
+  font-weight: 500;
+}
