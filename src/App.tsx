@@ -6,6 +6,10 @@ import StarterKit from '@tiptap/starter-kit'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
+import { Table } from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
 
 import { Annotations } from './extensions/Annotations'
 import { resolvedNames } from './extensions/Annotations'
@@ -14,6 +18,7 @@ import { SlashCommands, COMMANDS } from './extensions/SlashCommands'
 import { TodoCommand } from './extensions/TodoCommand'
 import { CodeCommand } from './extensions/CodeCommand'
 import { FormattingCommands } from './extensions/FormattingCommands'
+import { TableCommand } from './extensions/TableCommand'
 
 import { db } from './db'
 import type { Note, RegistryEntry } from './db'
@@ -23,7 +28,7 @@ import Sidebar from './Sidebar'
 import AnnotationPreview from './AnnotationPreview'
 
 COMMANDS.length = 0
-COMMANDS.push(TodoCommand, CodeCommand, ...FormattingCommands)
+COMMANDS.push(TodoCommand, CodeCommand, TableCommand, ...FormattingCommands)
 console.log(COMMANDS)
 
 export default function App() {
@@ -32,10 +37,24 @@ export default function App() {
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const registryEntries = useLiveQuery(() => db.registry.toArray(), [])
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [preview, setPreview] = useState<{ content: string; x: number; y: number } | null>(null)
+  const [preview, setPreview] = useState<{ entries: { title: string; line: string; noteId: number; name: string }[]; x: number; y: number } | null>(null)
+  const dismissTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const showTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentAnnotation = useRef<string | null>(null)
 
   const editor = useEditor({
-    extensions: [StarterKit, TaskList, TaskItem.configure({ nested: true }), SlashCommands, Annotations, Link],
+    extensions: [
+      StarterKit, 
+      TaskList, 
+      TaskItem.configure({ nested: true }), 
+      SlashCommands, 
+      Annotations, 
+      Link,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+    ],
     content: '<p>Start typing...</p>',
     onUpdate({ editor }) {
       if (!activeNoteIdRef.current) return
@@ -52,7 +71,7 @@ export default function App() {
         const lines = text.split('\n')
         const entries: Omit<RegistryEntry, 'id'>[] = []
         for (const line of lines) {
-          const regex = /@(def|section)\s+\{([^}]+)\}/g
+          const regex = /@(def|section|ref|title})\s+\{([^}]+)\}/g
           let match
           while ((match = regex.exec(line)) !== null) {
             entries.push({ name: match[2], type: match[1] as 'def' | 'section', noteId: activeNoteIdRef.current!, lineContent: line.trim() })
@@ -106,23 +125,15 @@ export default function App() {
     const note = await db.notes.get(entry.noteId)
     if (!note) return
     selectNote(note)
-    setTimeout(() => scrollToAnnotation(entry.name), 100)
+    setTimeout(() => scrollToAnnotation(entry.name), 300)
   }
 
-  async function handleEditorMouseOver(e: React.MouseEvent) {
-    const target = e.target as HTMLElement
-    const isDef = target.classList.contains('annotation-def')
-    const isRef = target.classList.contains('annotation-ref-resolved')
-    if (!isDef && !isRef) return
-
-    const match = target.textContent?.match(/@(?:def|ref)\s+\{([^}]+)\}/)
-    if (!match) return
-
-    const entry = await db.registry.where('name').equals(match[1]).first()
-    if (!entry) return
-
-    const rect = target.getBoundingClientRect()
-    setPreview({ content: entry.lineContent, x: rect.left, y: rect.bottom })
+  async function handlePreviewSelect(noteId: number, name: string) {
+    const note = await db.notes.get(noteId)
+    if (!note) return
+    selectNote(note)
+    setTimeout(() => scrollToAnnotation(name), 100)
+    setPreview(null)
   }
 
   function selectNote(note: Note) {
@@ -151,25 +162,62 @@ export default function App() {
   function handleEditorClick(e: React.MouseEvent) {
     const target = e.target as HTMLElement
     if (!target.classList.contains('annotation-ref-resolved')) return
+  }
 
-    const match = target.textContent?.match(/@ref\s+\{([^}]+)\}/)
+  function startDismiss() {
+    dismissTimeout.current = setTimeout(() => setPreview(null), 700)
+  }
+
+  function cancelDismiss() {
+    if (dismissTimeout.current) clearTimeout(dismissTimeout.current)
+  }
+
+  function handleEditorMouseMove(e: React.MouseEvent) {
+    const target = e.target as HTMLElement
+    const isDef = target.classList.contains('annotation-def')
+    const isRef = target.classList.contains('annotation-ref-resolved')
+
+    if (!isDef && !isRef) {
+      if (currentAnnotation.current !== null) {
+        currentAnnotation.current = null
+        if (showTimeout.current) clearTimeout(showTimeout.current)
+        startDismiss()
+      }
+      return
+    }
+
+    const match = target.textContent?.match(/@(?:def|ref)\s+\{([^}]+)\}/)
     if (!match) return
     const name = match[1]
 
-    db.registry.where('name').equals(name).first().then(entry => {
-      if (!entry) return
-      db.notes.get(entry.noteId).then(note => {
-        if (!note) return
-        selectNote(note)
-        setTimeout(() => scrollToAnnotation(name), 100)
-      })
-    })
-  }
+    cancelDismiss()
 
-  function handleEditorMouseOut(e: React.MouseEvent) {
-    const related = e.relatedTarget as HTMLElement
-    if (related?.classList?.contains('annotation-def') || related?.classList?.contains('annotation-ref-resolved')) return
-    setPreview(null)
+    if (currentAnnotation.current === name) return
+
+    currentAnnotation.current = name
+    if (showTimeout.current) clearTimeout(showTimeout.current)
+
+    const rect = target.getBoundingClientRect()
+
+    showTimeout.current = setTimeout(async () => {
+      if (isRef) {
+        const entry = await db.registry.where('name').equals(name)
+          .filter(e => e.type === 'def' || e.type === 'section' || e.type === 'title').first()
+        if (!entry) return
+        const note = await db.notes.get(entry.noteId)
+        setPreview({ entries: [{ title: note?.title ?? 'Untitled', line: entry.lineContent, noteId: entry.noteId, name }], x: rect.left, y: rect.bottom })
+      }
+
+      if (isDef) {
+        const refs = await db.registry.where('name').equals(name).filter(e => e.type === 'ref').toArray()
+        const entries = await Promise.all(refs.map(async r => {
+          const note = await db.notes.get(r.noteId)
+          return { title: note?.title ?? 'Untitled', line: r.lineContent, noteId: r.noteId, name }
+        }))
+        if (!entries.length) return
+        setPreview({ entries, x: rect.left, y: rect.bottom })
+      }
+    }, 200)
   }
 
   return (
@@ -181,7 +229,7 @@ export default function App() {
             <p className="text-sm mb-3">No note selected</p>
           </div>
         ) : (
-          <div onClick={handleEditorClick} onMouseOver={handleEditorMouseOver} onMouseOut={handleEditorMouseOut}>
+          <div onClick={handleEditorClick} onMouseMove={handleEditorMouseMove}>
             <EditorContent editor={editor} />
           </div>
         )}
@@ -191,7 +239,16 @@ export default function App() {
           onSelectNote={selectNote}
           onSelectEntry={handleSelectEntry}
         />
-        {preview && <AnnotationPreview content={preview.content} x={preview.x} y={preview.y} />}
+        {preview && (
+          <AnnotationPreview
+            entries={preview.entries}
+            x={preview.x}
+            y={preview.y}
+            onSelect={handlePreviewSelect}
+            onMouseEnter={cancelDismiss}
+            onMouseLeave={() => setPreview(null)}
+          />
+        )}
       </div>
     </div>
   )

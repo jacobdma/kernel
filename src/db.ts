@@ -13,7 +13,7 @@ export interface Note {
 export interface RegistryEntry {
   id?: number
   name: string
-  type: 'def' | 'section'
+  type: 'def' | 'section' | 'ref' | 'title'
   noteId: number
   lineContent: string
 }
