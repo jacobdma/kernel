@@ -10,13 +10,23 @@ export interface Note {
   modified: Date
 }
 
+export interface RegistryEntry {
+  id?: number
+  name: string
+  type: 'def' | 'section'
+  noteId: number
+  lineContent: string
+}
+
 class KernelDB extends Dexie {
   notes!: Table<Note>
+  registry!: Table<RegistryEntry>
 
   constructor() {
     super('kernel')
-    this.version(1).stores({
-      notes: '++id, title, modified'
+    this.version(2).stores({
+      notes: '++id, title, modified',
+      registry: '++id, name, type, noteId',
     })
   }
 }

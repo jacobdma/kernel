@@ -19,3 +19,11 @@
   color: #6366f1;
   font-weight: 500;
 }
+.tiptap .annotation { font-weight: 500; border-radius: 3px; padding: 0 2px; }
+.tiptap .annotation-title   { color: #dc2626; }
+.tiptap .annotation-section { color: #d97706; }
+.tiptap .annotation-def     { color: #16a34a; }
+.tiptap .annotation-ref     { color: #2563eb; }
+.tiptap .annotation-tag     { color: #6366f1; }
+.tiptap .annotation-ref-resolved   { color: #2563eb; }
+.tiptap .annotation-ref-unresolved { color: #686e7b;}
