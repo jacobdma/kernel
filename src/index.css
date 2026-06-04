@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+.tiptap { outline: none; }
+.tiptap h1 { font-size: 2em; font-weight: bold; margin: 0.5em 0; }
+.tiptap h2 { font-size: 1.5em; font-weight: bold; margin: 0.5em 0; }
+.tiptap h3 { font-size: 1.25em; font-weight: bold; margin: 0.5em 0; }
