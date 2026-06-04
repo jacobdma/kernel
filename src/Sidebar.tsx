@@ -7,9 +7,10 @@ interface Props {
   activeId: number | null
   onSelect: (note: Note) => void
   onDelete: (note: Note) => void
+  onNew: () => void
 }
 
-export default function Sidebar({ activeId, onSelect, onDelete }: Props) {
+export default function Sidebar({ activeId, onSelect, onDelete, onNew }: Props) {
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const notes = useLiveQuery(() => db.notes.orderBy('modified').reverse().toArray())
 
@@ -17,6 +18,9 @@ export default function Sidebar({ activeId, onSelect, onDelete }: Props) {
 
   return (
     <div className="w-56 h-screen border-r border-gray-200 p-3 flex flex-col gap-1">
+        <button onClick={onNew} className="w-full text-left text-sm px-2 py-1 mb-2 bg-black text-white rounded">
+            New Note
+        </button>
       {activeTag && (
         <button onClick={() => setActiveTag(null)} className="text-xs text-indigo-500 mb-1 text-left">
           ✕ #{activeTag}

@@ -1,8 +1,12 @@
 import { useEffect } from 'react'
+import { useRef, useState } from 'react'
+
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
+import Link from '@tiptap/extension-link'
+
 import { Annotations } from './extensions/Annotations'
 import { resolvedNames } from './extensions/Annotations'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -10,11 +14,13 @@ import { SlashCommands, COMMANDS } from './extensions/SlashCommands'
 import { TodoCommand } from './extensions/TodoCommand'
 import { CodeCommand } from './extensions/CodeCommand'
 import { FormattingCommands } from './extensions/FormattingCommands'
-import { useRef, useState } from 'react'
+
 import { db } from './db'
 import type { Note, RegistryEntry } from './db'
+
 import CommandPalette from './CommandPalette'
 import Sidebar from './Sidebar'
+import AnnotationPreview from './AnnotationPreview'
 
 COMMANDS.length = 0
 COMMANDS.push(TodoCommand, CodeCommand, ...FormattingCommands)
@@ -26,9 +32,10 @@ export default function App() {
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const registryEntries = useLiveQuery(() => db.registry.toArray(), [])
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [preview, setPreview] = useState<{ content: string; x: number; y: number } | null>(null)
 
   const editor = useEditor({
-    extensions: [StarterKit, TaskList, TaskItem.configure({ nested: true }), SlashCommands, Annotations],
+    extensions: [StarterKit, TaskList, TaskItem.configure({ nested: true }), SlashCommands, Annotations, Link],
     content: '<p>Start typing...</p>',
     onUpdate({ editor }) {
       if (!activeNoteIdRef.current) return
@@ -102,6 +109,22 @@ export default function App() {
     setTimeout(() => scrollToAnnotation(entry.name), 100)
   }
 
+  async function handleEditorMouseOver(e: React.MouseEvent) {
+    const target = e.target as HTMLElement
+    const isDef = target.classList.contains('annotation-def')
+    const isRef = target.classList.contains('annotation-ref-resolved')
+    if (!isDef && !isRef) return
+
+    const match = target.textContent?.match(/@(?:def|ref)\s+\{([^}]+)\}/)
+    if (!match) return
+
+    const entry = await db.registry.where('name').equals(match[1]).first()
+    if (!entry) return
+
+    const rect = target.getBoundingClientRect()
+    setPreview({ content: entry.lineContent, x: rect.left, y: rect.bottom })
+  }
+
   function selectNote(note: Note) {
     activeNoteIdRef.current = note.id!
     setActiveNoteId(note.id!)
@@ -143,22 +166,32 @@ export default function App() {
     })
   }
 
+  function handleEditorMouseOut(e: React.MouseEvent) {
+    const related = e.relatedTarget as HTMLElement
+    if (related?.classList?.contains('annotation-def') || related?.classList?.contains('annotation-ref-resolved')) return
+    setPreview(null)
+  }
+
   return (
     <div className="flex h-screen">
-      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} />
+      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} />
       <div className="flex-1 p-8">
-        <button onClick={createNote} className="mb-4 px-3 py-1 bg-black text-white text-sm rounded">
-          New Note
-        </button>
-        <div onClick={handleEditorClick}>
-          <EditorContent editor={editor} />
-        </div>
+        {activeNoteId === null ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-300">
+            <p className="text-sm mb-3">No note selected</p>
+          </div>
+        ) : (
+          <div onClick={handleEditorClick} onMouseOver={handleEditorMouseOver} onMouseOut={handleEditorMouseOut}>
+            <EditorContent editor={editor} />
+          </div>
+        )}
         <CommandPalette
           open={paletteOpen}
           onClose={() => setPaletteOpen(false)}
           onSelectNote={selectNote}
           onSelectEntry={handleSelectEntry}
         />
+        {preview && <AnnotationPreview content={preview.content} x={preview.x} y={preview.y} />}
       </div>
     </div>
   )
