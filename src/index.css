@@ -29,10 +29,38 @@
 .tiptap .annotation-def     { color: #16a34a; }
 .tiptap .annotation-ref     { color: #2563eb; }
 .tiptap .annotation-tag     { color: #6366f1; }
+
 .tiptap .annotation-ref-resolved   { color: #2563eb; }
 .tiptap .annotation-ref-unresolved { color: #686e7b;}
+
 .tiptap a {
   color: #2563eb;
   text-decoration: underline;
   cursor: pointer;
+}
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+  font-size: 0.9em;
+}
+
+.tiptap td, .tiptap th {
+  border: 1px solid #e0e0e0;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  min-width: 80px;
+}
+
+.tiptap th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
+.tiptap tr:hover td {
+  background: #fafafa;
+}
+
+.tiptap .selectedCell {
+  background: #eff6ff;
 }

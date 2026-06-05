@@ -26,6 +26,7 @@ import type { Note, RegistryEntry } from './db'
 import CommandPalette from './CommandPalette'
 import Sidebar from './Sidebar'
 import AnnotationPreview from './AnnotationPreview'
+import TableContextMenu from './TableContextMenu'
 
 COMMANDS.length = 0
 COMMANDS.push(TodoCommand, CodeCommand, TableCommand, ...FormattingCommands)
@@ -41,6 +42,7 @@ export default function App() {
   const dismissTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const showTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentAnnotation = useRef<string | null>(null)
+  const [tableMenu, setTableMenu] = useState<{ x: number; y: number } | null>(null)
 
   const editor = useEditor({
     extensions: [
@@ -97,6 +99,12 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  useEffect(() => {
+    function onMouseDown() { setTableMenu(null) }
+    window.addEventListener('mousedown', onMouseDown)
+    return () => window.removeEventListener('mousedown', onMouseDown)
   }, [])
 
   async function createNote() {
@@ -220,6 +228,12 @@ export default function App() {
     }, 200)
   }
 
+  function handleContextMenu(e: React.MouseEvent) {
+    if (!editor?.isActive('table')) return
+    e.preventDefault()
+    setTableMenu({ x: e.clientX, y: e.clientY })
+  }
+
   return (
     <div className="flex h-screen">
       <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} />
@@ -229,7 +243,7 @@ export default function App() {
             <p className="text-sm mb-3">No note selected</p>
           </div>
         ) : (
-          <div onClick={handleEditorClick} onMouseMove={handleEditorMouseMove}>
+          <div onClick={handleEditorClick} onMouseMove={handleEditorMouseMove} onContextMenu={handleContextMenu}>
             <EditorContent editor={editor} />
           </div>
         )}
@@ -248,6 +262,9 @@ export default function App() {
             onMouseEnter={cancelDismiss}
             onMouseLeave={() => setPreview(null)}
           />
+        )}
+        {tableMenu && editor && (
+          <TableContextMenu x={tableMenu.x} y={tableMenu.y} editor={editor} onClose={() => setTableMenu(null)} />
         )}
       </div>
     </div>
