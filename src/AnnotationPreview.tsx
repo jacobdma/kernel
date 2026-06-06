@@ -17,16 +17,15 @@ interface Props {
 export default function AnnotationPreview({ entries, x, y, onSelect, onMouseEnter, onMouseLeave }: Props) {
   return (
     <div
-      className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm text-sm text-gray-700 overflow-hidden"
+      className="k-anno-preview"
       style={{ top: y + 8, left: x }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       {entries.map((e, i) => (
-        <div key={i} onClick={() => onSelect(e.noteId, e.name)}
-          className={`p-3 cursor-pointer hover:bg-gray-50 ${i !== entries.length - 1 ? 'border-b border-gray-100' : ''}`}>
-          <p className="font-semibold text-xs text-gray-400 mb-1">{e.title}</p>
-          <p>{e.line}</p>
+        <div key={i} onClick={() => onSelect(e.noteId, e.name)} className="k-anno-entry">
+          <span className="k-anno-entry-title">{e.title}</span>
+          <span className="k-anno-entry-line">{e.line}</span>
         </div>
       ))}
     </div>

@@ -235,16 +235,23 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="k-app">
       <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} />
-      <div className="flex-1 p-8">
+      <div className="k-island k-editor">
         {activeNoteId === null ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-300">
-            <p className="text-sm mb-3">No note selected</p>
+          <div className="k-editor-empty">
+            <p>No note selected</p>
           </div>
         ) : (
-          <div onClick={handleEditorClick} onMouseMove={handleEditorMouseMove} onContextMenu={handleContextMenu}>
-            <EditorContent editor={editor} />
+          <div className="k-editor-scroll" onClick={handleEditorClick} onMouseMove={handleEditorMouseMove} onContextMenu={handleContextMenu}>
+            <div className="k-editor-inner">
+              <EditorContent editor={editor} />
+            </div>
+          </div>
+        )}
+        {activeNoteId !== null && (
+          <div className="k-editor-foot">
+            <span className="k-foot-hint">Type <span className="k-kbd-cap">/</span> for commands</span>
           </div>
         )}
         <CommandPalette

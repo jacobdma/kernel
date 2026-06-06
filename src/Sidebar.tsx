@@ -35,40 +35,50 @@ export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch 
     const filtered = activeTag ? sorted.filter(n => n.tags.includes(activeTag)) : sorted
 
   return (
-    <div className="w-56 h-screen border-r border-gray-200 p-3 flex flex-col gap-1">
-        <div className="flex gap-1 mb-2">
-            <button onClick={onNew} className="flex-1 text-left text-sm px-2 py-1 bg-black text-white rounded">
-                New Note
-            </button>
+    <div className="k-island k-sidebar">
+      <div className="k-side-head">
+        <div className="k-brand">
+          <span className="k-wordmark">kernel</span>
         </div>
-        <button onClick={onSearch} className="px-2 py-1 text-gray-400 hover:text-gray-600 border border-gray-200 rounded text-sm">
-            Search ⌘P
-        </button>
+      </div>
+
+      <button onClick={onNew} className="k-newnote">
+        <span aria-hidden>+</span> New Note
+      </button>
+
       {activeTag && (
-        <button onClick={() => setActiveTag(null)} className="text-xs text-indigo-500 mb-1 text-left">
-          ✕ #{activeTag}
+        <button onClick={() => setActiveTag(null)} className="k-tagclear">
+          <span aria-hidden>✕</span> #{activeTag}
         </button>
       )}
-      {filtered?.map(note => (
-        <div key={note.id} className={`flex flex-col rounded px-2 py-1 ${activeId === note.id ? 'bg-gray-100' : ''}`}>
-          <div className="flex items-center">
-            <button onClick={() => onSelect(note)} className="flex-1 text-left text-sm truncate">
-              {note.title || 'Untitled'}
-            </button>
-            <button onClick={() => onDelete(note)} className="text-gray-300 hover:text-red-400 text-xs ml-1">✕</button>
-          </div>
-          {note.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-0.5">
-              {note.tags.map(tag => (
-                <button key={tag} onClick={() => setActiveTag(tag)}
-                  className="text-xs text-indigo-400 hover:text-indigo-600">
-                  #{tag}
-                </button>
-              ))}
+
+      <div className="k-notelist">
+        {filtered.length === 0 && <p className="k-empty-side">No notes</p>}
+        {filtered.map(note => (
+          <div key={note.id} className={`k-noterow ${activeId === note.id ? 'active' : ''}`}>
+            <div className="k-noterow-top">
+              <button onClick={() => onSelect(note)} className="k-notebtn">
+                <span className={`k-notetitle ${note.title ? '' : 'muted'}`}>{note.title || 'Untitled'}</span>
+              </button>
+              <button onClick={() => onDelete(note)} className="k-notedel" aria-label="Delete note">✕</button>
             </div>
-          )}
-        </div>
-      ))}
+            {note.tags.length > 0 && (
+              <div className="k-noterow-tags">
+                {note.tags.map(tag => (
+                  <button key={tag} onClick={() => setActiveTag(tag)} className="k-tag-mini">
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="k-side-foot">
+        <button onClick={onSearch} className="k-foot-hint">Search</button>
+        <span className="k-kbd-cap">⌘P</span>
+      </div>
     </div>
   )
 }

@@ -20,15 +20,15 @@ const ITEMS = [
 
 export default function TableContextMenu({ x, y, editor, onClose }: Props) {
   return (
-    <div className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-44"
+    <div className="k-menu"
       style={{ top: y, left: x }}
       onMouseDown={e => e.stopPropagation()}>
       {ITEMS.map((item, i) =>
         item === null
-          ? <div key={i} className="border-t border-gray-100 my-1" />
+          ? <div key={i} className="k-menu-sep" />
           : <button key={i}
               onClick={() => { item.action(editor); onClose() }}
-              className="block w-full text-left text-sm px-3 py-1.5 rounded hover:bg-gray-100">
+              className="k-menu-item">
               {item.label}
             </button>
       )}

@@ -38,27 +38,26 @@ export default function CommandPalette({ open, onClose, onSelectNote, onSelectEn
   const results = [...noteResults, ...registryResults].slice(0, 10)
 
   return (
-    <div className="fixed inset-0 bg-black/20 z-50 flex items-start justify-center pt-32" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search notes and definitions..."
-          className="w-full px-4 py-3 text-sm outline-none border-b border-gray-100 rounded-t-lg"
-        />
-        <div className="max-h-80 overflow-y-auto p-1">
-          {results.length === 0 && <p className="text-xs text-gray-400 px-3 py-2">No results</p>}
+    <div className="k-pal-scrim" onClick={onClose}>
+      <div className="k-pal" onClick={e => e.stopPropagation()}>
+        <div className="k-pal-search">
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search notes and definitions…"
+          />
+        </div>
+        <div className="k-pal-list">
+          {results.length === 0 && <p className="k-pal-empty">No results</p>}
           {results.map((r, i) => r.kind === 'note' ? (
-            <button key={i} onClick={() => { onSelectNote(r.note); onClose() }}
-              className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100">
-              <span className="text-gray-400 text-xs">note</span>
-              <span>{r.note.title}</span>
+            <button key={i} onClick={() => { onSelectNote(r.note); onClose() }} className="k-pal-opt">
+              <span className="k-pal-kind">note</span>
+              <span>{r.note.title || 'Untitled'}</span>
             </button>
           ) : (
-            <button key={i} onClick={() => { onSelectEntry(r.entry); onClose() }}
-              className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100">
-              <span className="text-gray-400 text-xs">{r.entry.type}</span>
+            <button key={i} onClick={() => { onSelectEntry(r.entry); onClose() }} className="k-pal-opt">
+              <span className={`k-pal-kind kind-${r.entry.type}`}>{r.entry.type}</span>
               <span>{r.entry.name}</span>
             </button>
           ))}
