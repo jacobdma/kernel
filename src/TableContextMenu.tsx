@@ -1,3 +1,6 @@
+// Right-click menu for table cells: insert/delete rows, columns, and the table.
+// stopPropagation on mousedown keeps App's window-level click-to-dismiss from
+// closing the menu before a button's onClick fires.
 import type { Editor } from '@tiptap/react'
 
 interface Props {

@@ -1,9 +1,12 @@
+// Keyboard-navigable slash-command menu (rendered in a TipTap suggestion popup),
+// plus the SlashCommand type shared by all command extensions.
 import { forwardRef, useImperativeHandle, useState } from 'react'
+import type { Editor, Range } from '@tiptap/core'
 
 export type SlashCommand = {
   label: string
   shortcut?: string
-  command: (props: { editor: any; range: any }) => void
+  command: (props: { editor: Editor; range: Range }) => void
 }
 
 export interface SlashMenuHandle {

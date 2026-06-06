@@ -1,3 +1,4 @@
+// Slash command: /table inserts a 3x3 table (no header row).
 import type { SlashCommand } from '../SlashMenu'
 
 export const TableCommand: SlashCommand = {

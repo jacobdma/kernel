@@ -1,3 +1,5 @@
+// Dexie/IndexedDB schema for kernel: notes and the annotation registry that
+// indexes every @def/@section/@ref/@title found across all notes.
 import Dexie from 'dexie'
 import type { Table } from 'dexie'
 

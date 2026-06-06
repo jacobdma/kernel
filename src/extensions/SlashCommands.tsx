@@ -1,4 +1,7 @@
+// Wires the '/' suggestion trigger to the COMMANDS registry and renders the
+// SlashMenu popup. COMMANDS is populated by App.tsx from the command extensions.
 import { Extension } from '@tiptap/core'
+import type { Editor, Range } from '@tiptap/core'
 import Suggestion from '@tiptap/suggestion'
 import { ReactRenderer } from '@tiptap/react'
 import SlashMenu from '../SlashMenu'
@@ -15,7 +18,7 @@ export const SlashCommands = Extension.create({
         char: '/',
         items: ({ query }: { query: string }) =>
         COMMANDS.filter(c => c.label.toLowerCase().includes(query.toLowerCase())),
-        command: ({ editor, range, props }: { editor: any; range: any; props: SlashCommand }) => {
+        command: ({ editor, range, props }: { editor: Editor; range: Range; props: SlashCommand }) => {
           props.command({ editor, range })
         },
         render: () => {

@@ -1,3 +1,4 @@
+// Slash commands for text formatting: headings (/h1–/h3), /bold, /italic.
 import type { SlashCommand } from '../SlashMenu'
 
 export const FormattingCommands: SlashCommand[] = [
@@ -14,7 +15,7 @@ export const FormattingCommands: SlashCommand[] = [
     },
   },
   {
-    label: '/h3', shortcut: '##',
+    label: '/h3', shortcut: '###',
     command({ editor, range }) {
       editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run()
     },

@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+// ⌘P command palette: fuzzy-searches note titles and registry entries
+// (annotation names/types) with Fuse.js and routes the selection back to App.
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Fuse from 'fuse.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
@@ -21,6 +23,10 @@ export default function CommandPalette({ open, onClose, onSelectNote, onSelectEn
   const notes = useLiveQuery(() => db.notes.toArray())
   const registry = useLiveQuery(() => db.registry.toArray())
 
+  // Build each Fuse index only when its source data changes, not per keystroke.
+  const noteFuse = useMemo(() => new Fuse(notes ?? [], { keys: ['title'], threshold: 0.4 }), [notes])
+  const registryFuse = useMemo(() => new Fuse(registry ?? [], { keys: ['name', 'type'], threshold: 0.4 }), [registry])
+
   useEffect(() => {
     if (open) { setQuery(''); setTimeout(() => inputRef.current?.focus(), 0) }
   }, [open])
@@ -28,11 +34,11 @@ export default function CommandPalette({ open, onClose, onSelectNote, onSelectEn
   if (!open) return null
 
   const noteResults: Result[] = query
-    ? new Fuse(notes ?? [], { keys: ['title'], threshold: 0.4 }).search(query).map(r => ({ kind: 'note', note: r.item }))
+    ? noteFuse.search(query).map(r => ({ kind: 'note', note: r.item }))
     : (notes ?? []).map(n => ({ kind: 'note', note: n }))
 
   const registryResults: Result[] = query
-    ? new Fuse(registry ?? [], { keys: ['name', 'type'], threshold: 0.4 }).search(query).map(r => ({ kind: 'registry', entry: r.item }))
+    ? registryFuse.search(query).map(r => ({ kind: 'registry', entry: r.item }))
     : []
 
   const results = [...noteResults, ...registryResults].slice(0, 10)

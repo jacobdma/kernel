@@ -1,3 +1,5 @@
+// Left island: note list with newest-first ordering, tag filtering, and
+// create/delete/search controls.
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
@@ -16,6 +18,11 @@ export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch 
     const [orderedIds, setOrderedIds] = useState<number[]>([])
     const notes = useLiveQuery(() => db.notes.toArray())
 
+    // Maintain a stable display order that survives live updates: newly-seen
+    // notes are sorted newest-first and prepended, existing rows keep their
+    // position, and deleted notes are pruned. Using the functional updater (not
+    // `notes` directly) avoids re-sorting the whole list on every edit, which
+    // would otherwise make the active note jump to the top while typing.
     useEffect(() => {
         if (!notes) return
         setOrderedIds(prev => {
@@ -26,12 +33,14 @@ export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch 
                 .sort((a, b) => b.modified.getTime() - a.modified.getTime())
                 .map(n => n.id!)
             const pruned = prev.filter(id => noteIds.has(id))
+            // Nothing added and nothing removed: return prev to skip a re-render.
             if (additions.length === 0 && pruned.length === prev.length) return prev
             return [...additions, ...pruned]
         })
     }, [notes])
 
-    const sorted = orderedIds.map(id => notes?.find(n => n.id! === id)).filter(Boolean) as Note[]
+    const byId = new Map((notes ?? []).map(n => [n.id!, n]))
+    const sorted = orderedIds.map(id => byId.get(id)).filter(Boolean) as Note[]
     const filtered = activeTag ? sorted.filter(n => n.tags.includes(activeTag)) : sorted
 
   return (

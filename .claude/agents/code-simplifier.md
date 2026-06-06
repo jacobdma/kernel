@@ -14,6 +14,7 @@ Rules:
 - Do NOT create new abstractions or utilities to save lines
 - Do NOT sacrifice readability for line count
 - Do NOT change behavior — only structure
+- Do NOT remove existing comments unless they are incorrect or redundant
 - Work on one file at a time
 - Keep changes under 200 lines per response
 

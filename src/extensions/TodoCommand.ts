@@ -1,3 +1,4 @@
+// Slash command: /todo inserts a checkbox task list.
 import type { SlashCommand } from '../SlashMenu'
 
 export const TodoCommand: SlashCommand = {

@@ -230,12 +230,10 @@ body {
 .tiptap .annotation-title   { color: var(--anno-title); }
 .tiptap .annotation-section { color: var(--anno-section); }
 .tiptap .annotation-def     { color: var(--anno-def); }
-.tiptap .annotation-ref     { color: var(--anno-ref); }
 .tiptap .annotation-tag     { color: var(--anno-tag); }
 .tiptap .annotation-ref-resolved   { color: var(--anno-ref); cursor: pointer; }
 .tiptap .annotation-ref-resolved:hover { background: var(--anno-ref-bg); }
 .tiptap .annotation-ref-unresolved { color: var(--anno-unres); }
-.tiptap .tag-mark { font-family: var(--font-mono); font-weight: 500; color: var(--anno-tag); }
 
 .tiptap a { color: var(--anno-ref); text-decoration: underline; cursor: pointer; }
 

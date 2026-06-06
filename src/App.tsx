@@ -1,3 +1,7 @@
+// Root component. Owns the TipTap editor and wires together autosave, the
+// annotation registry rebuild, hover previews, the command palette, and the
+// table context menu. See the inline comments for the hover-preview state
+// machine and the autosave/registry timing.
 import { useEffect, useRef, useState } from 'react'
 
 import { useEditor, EditorContent } from '@tiptap/react'
@@ -26,16 +30,25 @@ import Sidebar from './Sidebar'
 import AnnotationPreview from './AnnotationPreview'
 import TableContextMenu from './TableContextMenu'
 
+// Populate the slash-command registry the SlashCommands extension reads from.
+// Done at module load (reset-then-push) so the list survives Fast Refresh
+// re-evaluation without accumulating duplicate entries.
 COMMANDS.length = 0
 COMMANDS.push(TodoCommand, CodeCommand, TableCommand, ...FormattingCommands)
 
 export default function App() {
   const [activeNoteId, setActiveNoteId] = useState<number | null>(null)
+  // Mirror of activeNoteId for use inside the editor's onUpdate closure, which
+  // captures stale state but always sees the current ref value.
   const activeNoteIdRef = useRef<number | null>(null)
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const registryEntries = useLiveQuery(() => db.registry.toArray(), [])
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [preview, setPreview] = useState<{ entries: { title: string; line: string; noteId: number; name: string }[]; x: number; y: number } | null>(null)
+  // Hover-preview timing refs (see handleEditorMouseMove for the state machine):
+  // dismissTimeout closes the preview after the cursor leaves an annotation,
+  // showTimeout delays opening it, and currentAnnotation tracks which
+  // annotation name the cursor is currently over to avoid redundant work.
   const dismissTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const showTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentAnnotation = useRef<string | null>(null)
@@ -55,34 +68,45 @@ export default function App() {
       TableCell,
     ],
     content: '<p>Start typing...</p>',
+    // Debounced autosave: every keystroke resets a 500ms timer; only the final
+    // edit in a burst actually writes to IndexedDB. Also rebuilds this note's
+    // registry entries (annotation index) from the current text.
     onUpdate({ editor }) {
       if (!activeNoteIdRef.current) return
       if (saveTimeout.current) clearTimeout(saveTimeout.current)
       saveTimeout.current = setTimeout(async () => {
         const text = editor.getText()
 
+        // Title comes from an explicit @title annotation, else the first line.
         const titleMatch = text.match(/@title\s+\{([^}]+)\}/)
         const title = titleMatch ? titleMatch[1] : editor.state.doc.firstChild?.textContent || 'Untitled'
         const tags = [...text.matchAll(/@tag\s+\{([^}]+)\}/g)].map(m => m[1])
 
         await db.notes.update(activeNoteIdRef.current!, { content: editor.getHTML(), modified: new Date(), title, tags })
 
+        // Re-scan line-by-line so each registry entry keeps its source line as
+        // preview text. Parsed per line rather than over the whole document.
         const lines = text.split('\n')
         const entries: Omit<RegistryEntry, 'id'>[] = []
         for (const line of lines) {
-          const regex = /@(def|section|ref|title})\s+\{([^}]+)\}/g
+          const regex = /@(def|section|ref|title)\s+\{([^}]+)\}/g
           let match
           while ((match = regex.exec(line)) !== null) {
-            entries.push({ name: match[2], type: match[1] as 'def' | 'section', noteId: activeNoteIdRef.current!, lineContent: line.trim() })
+            entries.push({ name: match[2], type: match[1] as RegistryEntry['type'], noteId: activeNoteIdRef.current!, lineContent: line.trim() })
           }
         }
 
+        // Replace this note's registry rows wholesale (delete-then-add) so
+        // removed annotations don't linger in the index.
         await db.registry.where('noteId').equals(activeNoteIdRef.current!).delete()
         if (entries.length) await db.registry.bulkAdd(entries)
       }, 500)
     },
   })
 
+  // Keep the annotation extension's resolved-name set in sync with the registry,
+  // then dispatch an empty transaction to force decorations to recompute so
+  // @ref marks flip between resolved/unresolved styling.
   useEffect(() => {
     resolvedNames.clear()
     registryEntries?.forEach(e => resolvedNames.add(e.name))
@@ -102,6 +126,13 @@ export default function App() {
     function onMouseDown() { setTableMenu(null) }
     window.addEventListener('mousedown', onMouseDown)
     return () => window.removeEventListener('mousedown', onMouseDown)
+  }, [])
+
+  // Cancel any pending autosave/hover timers if the app unmounts.
+  useEffect(() => () => {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current)
+    if (showTimeout.current) clearTimeout(showTimeout.current)
+    if (dismissTimeout.current) clearTimeout(dismissTimeout.current)
   }, [])
 
   async function createNote() {
@@ -130,6 +161,8 @@ export default function App() {
     const note = await db.notes.get(entry.noteId)
     if (!note) return
     selectNote(note)
+    // Delay the scroll so setContent has rendered the new note's nodes before
+    // we search the doc for the target annotation position.
     setTimeout(() => scrollToAnnotation(entry.name), 300)
   }
 
@@ -137,6 +170,7 @@ export default function App() {
     const note = await db.notes.get(noteId)
     if (!note) return
     selectNote(note)
+    // Shorter delay than handleSelectEntry; the note is often already loaded.
     setTimeout(() => scrollToAnnotation(name), 100)
     setPreview(null)
   }
@@ -153,6 +187,8 @@ export default function App() {
     editor?.commands.setContent('<p></p>')
   }
 
+  // Find the @def declaration for `name` in the current doc and scroll it into
+  // view. Only @def (not @ref) is targeted so navigation lands on the source.
   function scrollToAnnotation(name: string) {
     if (!editor) return
     const target = `@def {${name}}`
@@ -170,6 +206,8 @@ export default function App() {
     }
   }
 
+  // Grace period before closing the preview, so the cursor can travel from the
+  // annotation into the preview popup (which calls cancelDismiss on enter).
   function startDismiss() {
     dismissTimeout.current = setTimeout(() => setPreview(null), 700)
   }
@@ -178,6 +216,10 @@ export default function App() {
     if (dismissTimeout.current) clearTimeout(dismissTimeout.current)
   }
 
+  // Hover-preview state machine driven by mousemove over the editor. Three cases:
+  //  - cursor left every annotation: cancel any pending show, start dismiss timer
+  //  - cursor still over the same annotation: no-op (guarded by currentAnnotation)
+  //  - cursor entered a new annotation: schedule a 200ms-delayed preview fetch
   function handleEditorMouseMove(e: React.MouseEvent) {
     const target = e.target as HTMLElement
     const isDef = target.classList.contains('annotation-def')
@@ -196,16 +238,20 @@ export default function App() {
     if (!match) return
     const name = match[1]
 
+    // Cursor is back on an annotation, so cancel any in-flight dismiss.
     cancelDismiss()
 
+    // Already hovering this annotation; preview is shown or pending, do nothing.
     if (currentAnnotation.current === name) return
 
     currentAnnotation.current = name
     if (showTimeout.current) clearTimeout(showTimeout.current)
 
+    // Capture rect now; the async callback positions the popup from it.
     const rect = target.getBoundingClientRect()
 
     showTimeout.current = setTimeout(async () => {
+      // Hovering a @ref: show where it's defined (the matching def/section/title).
       if (isRef) {
         const entry = await db.registry.where('name').equals(name)
           .filter(e => e.type === 'def' || e.type === 'section' || e.type === 'title').first()
@@ -214,13 +260,15 @@ export default function App() {
         setPreview({ entries: [{ title: note?.title ?? 'Untitled', line: entry.lineContent, noteId: entry.noteId, name }], x: rect.left, y: rect.bottom })
       }
 
+      // Hovering a @def: show every @ref that points back at this definition.
       if (isDef) {
         const refs = await db.registry.where('name').equals(name).filter(e => e.type === 'ref').toArray()
-        const entries = await Promise.all(refs.map(async r => {
-          const note = await db.notes.get(r.noteId)
-          return { title: note?.title ?? 'Untitled', line: r.lineContent, noteId: r.noteId, name }
-        }))
-        if (!entries.length) return
+        if (!refs.length) return
+        // Several refs can share a note, so fetch each note once and look titles
+        // up from a map rather than re-querying per ref.
+        const ids = [...new Set(refs.map(r => r.noteId))]
+        const notesById = new Map((await db.notes.bulkGet(ids)).map((n, i) => [ids[i], n] as const))
+        const entries = refs.map(r => ({ title: notesById.get(r.noteId)?.title ?? 'Untitled', line: r.lineContent, noteId: r.noteId, name }))
         setPreview({ entries, x: rect.left, y: rect.bottom })
       }
     }, 200)

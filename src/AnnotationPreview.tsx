@@ -1,3 +1,6 @@
+// Floating popup shown on annotation hover: lists the related def/ref entries
+// (note title + source line); clicking one navigates to that note. Positioned by
+// App from the hovered element's bounding rect.
 interface Entry {
   title: string
   line: string
