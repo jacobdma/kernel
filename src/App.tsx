@@ -236,7 +236,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} />
+      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} />
       <div className="flex-1 p-8">
         {activeNoteId === null ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-300">
