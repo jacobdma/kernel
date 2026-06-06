@@ -141,6 +141,16 @@ body {
 .k-editor-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--fg3); font-size: 14px; }
 .k-editor-foot { border-top: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; }
 
+/* Button primitives (design system). */
+.k-btn { font-family: var(--font-sans); font-size: 13px; font-weight: 500; border-radius: var(--r-sm); padding: 8px 13px; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
+.k-btn-ghost { background: none; color: var(--fg2); }
+.k-btn-ghost:hover { color: var(--fg1); background: var(--n-100); }
+.k-btn svg { display: block; }
+
+/* Mobile "back to list" bar — hidden on desktop, shown at the phone breakpoint. */
+.k-editor-bar { display: none; align-items: center; padding: 7px 9px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.k-mobile-back { gap: 6px; }
+
 /* ---- Keyboard cap ------------------------------------------------------- */
 .k-kbd-cap {
   font-family: var(--font-mono); font-weight: 500; font-size: 11px; color: var(--fg2);
@@ -233,6 +243,54 @@ body {
 .tiptap td, .tiptap th { border: 1px solid var(--border); padding: 8px 12px; text-align: left; min-width: 80px; }
 .tiptap th { background: var(--surface-sunk); font-weight: 600; font-size: 12px; color: var(--fg2); }
 .tiptap .selectedCell { background: var(--anno-ref-bg); }
+
+/* ============================================================================
+   Responsive — tablet & mobile
+   ============================================================================ */
+/* Tablet: tighten the editor's generous padding. */
+@media (max-width: 768px) {
+  .k-editor-inner { padding: 28px 24px; }
+}
+
+/* Phone: master-detail navigation. The note list and the open note are two
+   separate full-screen views; selecting a note swaps to the editor, and the
+   in-editor "back" bar returns to the list. dvh keeps the layout clear of the
+   mobile browser's address bar. */
+@media (max-width: 640px) {
+  .k-app {
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    gap: 0;
+    padding: var(--sp-2);
+  }
+
+  /* Show exactly one island at a time, filling the screen. */
+  .k-app[data-view="list"] .k-editor { display: none; }
+  .k-app[data-view="note"] .k-sidebar { display: none; }
+
+  .k-sidebar { width: 100%; max-height: none; flex: 1; min-height: 0; }
+  .k-notelist { min-height: 0; }
+
+  .k-editor { flex: 1; min-height: 0; }
+  .k-editor-bar { display: flex; }
+  .k-editor-inner { padding: 20px 18px; }
+  .k-editor-scroll { -webkit-overflow-scrolling: touch; }
+
+  /* Editor type scales down a touch so headings don't dominate a narrow column. */
+  .tiptap { font-size: 16px; }
+  .tiptap h1 { font-size: 25px; }
+  .tiptap h2 { font-size: 19px; }
+
+  /* Command palette: full-width with side gutters, opening higher on screen. */
+  .k-pal-scrim { padding: 10vh 12px 0; align-items: stretch; }
+  .k-pal { max-width: 100%; }
+  /* 16px input prevents iOS Safari from auto-zooming on focus. */
+  .k-pal-search input { font-size: 16px; }
+
+  /* Popovers shouldn't overflow the viewport edge. */
+  .k-anno-preview { max-width: calc(100vw - 24px); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

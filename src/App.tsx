@@ -1,5 +1,4 @@
-import { useEffect } from 'react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -11,8 +10,7 @@ import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 
-import { Annotations } from './extensions/Annotations'
-import { resolvedNames } from './extensions/Annotations'
+import { Annotations, resolvedNames } from './extensions/Annotations'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { SlashCommands, COMMANDS } from './extensions/SlashCommands'
 import { TodoCommand } from './extensions/TodoCommand'
@@ -30,7 +28,6 @@ import TableContextMenu from './TableContextMenu'
 
 COMMANDS.length = 0
 COMMANDS.push(TodoCommand, CodeCommand, TableCommand, ...FormattingCommands)
-console.log(COMMANDS)
 
 export default function App() {
   const [activeNoteId, setActiveNoteId] = useState<number | null>(null)
@@ -150,6 +147,12 @@ export default function App() {
     editor?.commands.setContent(note.content || '<p></p>')
   }
 
+  function backToList() {
+    activeNoteIdRef.current = null
+    setActiveNoteId(null)
+    editor?.commands.setContent('<p></p>')
+  }
+
   function scrollToAnnotation(name: string) {
     if (!editor) return
     const target = `@def {${name}}`
@@ -165,11 +168,6 @@ export default function App() {
     if (foundPos !== null) {
       editor.chain().setTextSelection(foundPos).scrollIntoView().run()
     }
-  }
-
-  function handleEditorClick(e: React.MouseEvent) {
-    const target = e.target as HTMLElement
-    if (!target.classList.contains('annotation-ref-resolved')) return
   }
 
   function startDismiss() {
@@ -235,15 +233,25 @@ export default function App() {
   }
 
   return (
-    <div className="k-app">
+    <div className="k-app" data-view={activeNoteId === null ? 'list' : 'note'}>
       <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} />
       <div className="k-island k-editor">
+        {activeNoteId !== null && (
+          <div className="k-editor-bar">
+            <button className="k-btn k-btn-ghost k-mobile-back" onClick={backToList}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+              Notes
+            </button>
+          </div>
+        )}
         {activeNoteId === null ? (
           <div className="k-editor-empty">
             <p>No note selected</p>
           </div>
         ) : (
-          <div className="k-editor-scroll" onClick={handleEditorClick} onMouseMove={handleEditorMouseMove} onContextMenu={handleContextMenu}>
+          <div className="k-editor-scroll" onMouseMove={handleEditorMouseMove} onContextMenu={handleContextMenu}>
             <div className="k-editor-inner">
               <EditorContent editor={editor} />
             </div>
