@@ -4,20 +4,34 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
 import type { Note } from './db'
+import NoteRow from './NoteRow'
+import ConfirmDialog from './ConfirmDialog'
 
 interface Props {
     activeId: number | null
     onSelect: (note: Note) => void
     onDelete: (note: Note) => void
+    onDuplicate: (note: Note) => void
     onNew: () => void
     onSearch: () => void
     onHelp: () => void
 }
 
-export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch, onHelp }: Props) {
+export default function Sidebar({ activeId, onSelect, onDelete, onDuplicate, onNew, onSearch, onHelp }: Props) {
     const [activeTag, setActiveTag] = useState<string | null>(null)
     const [orderedIds, setOrderedIds] = useState<number[]>([])
+    // Desktop right-click menu position/target, and the note pending delete.
+    const [rowMenu, setRowMenu] = useState<{ x: number; y: number; note: Note } | null>(null)
+    const [confirmNote, setConfirmNote] = useState<Note | null>(null)
     const notes = useLiveQuery(() => db.notes.toArray())
+
+    // Dismiss the row menu on any outside mousedown (the menu stops propagation).
+    useEffect(() => {
+        if (!rowMenu) return
+        const close = () => setRowMenu(null)
+        window.addEventListener('mousedown', close)
+        return () => window.removeEventListener('mousedown', close)
+    }, [rowMenu])
 
     // Maintain a stable display order that survives live updates: newly-seen
     // notes are sorted newest-first and prepended, existing rows keep their
@@ -52,13 +66,6 @@ export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch,
         </div>
       </div>
 
-      <div className="k-newnote-row">
-        <button onClick={onNew} className="k-newnote">
-          <span aria-hidden>+</span> New Note
-        </button>
-        <button onClick={onHelp} className="k-help" aria-label="Open welcome guide" title="Welcome guide">?</button>
-      </div>
-
       {activeTag && (
         <button onClick={() => setActiveTag(null)} className="k-tagclear">
           <span aria-hidden>✕</span> #{activeTag}
@@ -68,29 +75,56 @@ export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch,
       <div className="k-notelist">
         {filtered.length === 0 && <p className="k-empty-side">No notes</p>}
         {filtered.map(note => (
-          <div key={note.id} className={`k-noterow ${activeId === note.id ? 'active' : ''}`}>
-            <div className="k-noterow-top">
-              <button onClick={() => onSelect(note)} className="k-notebtn">
-                <span className={`k-notetitle ${note.title ? '' : 'muted'}`}>{note.title || 'Untitled'}</span>
-              </button>
-              <button onClick={() => onDelete(note)} className="k-notedel" aria-label="Delete note">✕</button>
-            </div>
-            {note.tags.length > 0 && (
-              <div className="k-noterow-tags">
-                {note.tags.map(tag => (
-                  <button key={tag} onClick={() => setActiveTag(tag)} className="k-tag-mini">
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <NoteRow
+            key={note.id}
+            note={note}
+            active={activeId === note.id}
+            onSelect={onSelect}
+            onDuplicate={onDuplicate}
+            onRequestDelete={setConfirmNote}
+            onContextMenu={(e, n) => { e.preventDefault(); setRowMenu({ x: e.clientX, y: e.clientY, note: n }) }}
+            onTagClick={setActiveTag}
+          />
         ))}
       </div>
 
-      <div className="k-side-foot">
-        <button onClick={onSearch} className="k-foot-hint">Search</button>
+      <div className="k-side-actions">
+        <button onClick={onNew} className="k-newnote">
+          <span aria-hidden>+</span> New Note
+        </button>
+        <button onClick={onSearch} className="k-sqbtn" aria-label="Search" title="Search ⌘P">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </button>
+        <button onClick={onHelp} className="k-sqbtn" aria-label="Open welcome guide" title="Welcome guide">?</button>
       </div>
+
+      {rowMenu && (
+        <div className="k-menu" style={{ top: rowMenu.y, left: rowMenu.x }} onMouseDown={e => e.stopPropagation()}>
+          <button className="k-menu-item" onClick={() => { onDuplicate(rowMenu.note); setRowMenu(null) }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            Duplicate
+          </button>
+          <button className="k-menu-item danger" onClick={() => { setConfirmNote(rowMenu.note); setRowMenu(null) }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M10 11v6M14 11v6" />
+            </svg>
+            Delete
+          </button>
+        </div>
+      )}
+
+      {confirmNote && (
+        <ConfirmDialog
+          message={`Delete “${confirmNote.title || 'Untitled'}”? This can't be undone.`}
+          onConfirm={() => { onDelete(confirmNote); setConfirmNote(null) }}
+          onCancel={() => setConfirmNote(null)}
+        />
+      )}
     </div>
     )
 }

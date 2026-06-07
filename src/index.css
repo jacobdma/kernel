@@ -92,17 +92,17 @@ body {
   padding: 9px 11px; margin-bottom: 10px; cursor: pointer;
   transition: background var(--dur-fast) var(--ease);
 }
-.k-newnote:hover { background: #000; }
-.k-newnote-row { display: flex; gap: 7px; margin-bottom: 10px; }
-.k-newnote-row .k-newnote { flex: 1; margin-bottom: 0; }
-.k-help {
+/* Bottom action row: New Note + square search/help icon buttons. */
+.k-side-actions { display: flex; gap: 7px; padding-top: 10px; margin-top: 8px; border-top: 1px solid var(--border); }
+.k-side-actions .k-newnote { flex: 1; margin-bottom: 0; }
+.k-sqbtn {
   flex-shrink: 0; width: 36px;
   display: inline-flex; align-items: center; justify-content: center;
   font-family: var(--font-mono); font-size: 14px; color: var(--fg2);
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm);
   cursor: pointer; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
-.k-help:hover { background: var(--n-100); color: var(--fg1); }
+.k-sqbtn svg { display: block; }
 
 .k-tagclear {
   display: inline-flex; align-items: center; gap: 4px;
@@ -112,24 +112,22 @@ body {
 }
 
 .k-notelist { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
-.k-noterow { display: flex; flex-direction: column; border-radius: var(--r-sm); padding: 1px 0 3px; transition: background var(--dur-fast) var(--ease); }
-.k-noterow:hover { background: var(--n-100); }
-.k-noterow.active { background: var(--n-100); }
-.k-noterow-top { display: flex; align-items: center; }
-.k-notebtn { flex: 1; min-width: 0; text-align: left; background: none; border: none; padding: 7px 4px 5px 10px; cursor: pointer; }
+.k-noterow { position: relative; border-radius: var(--r-sm); overflow: hidden; }
+.k-noterow-fg { position: relative; z-index: 1; display: flex; flex-direction: column; padding: 1px 0 3px; background: var(--surface); transition: transform var(--dur-fast) var(--ease); }
+.k-noterow.active .k-noterow-fg { background: var(--n-100); }
+/* Swipe-revealed actions sit behind the foreground, exposed as it slides left. */
+.k-noterow-actions { position: absolute; top: 0; right: 0; bottom: 0; width: 112px; display: flex; }
+.k-rowact { width: 56px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+.k-rowact.dup { background: var(--n-100); color: var(--fg2); }
+.k-rowact.del { background: #ef4444; color: #fff; }
+.k-notebtn { width: 100%; min-width: 0; text-align: left; background: none; border: none; padding: 7px 4px 5px 10px; cursor: pointer; }
 .k-notetitle { font-size: 13px; color: var(--fg1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .k-notetitle.muted { color: var(--fg3); }
 .k-noterow-tags { display: flex; gap: 7px; flex-wrap: wrap; padding: 0 10px 2px; }
 .k-tag-mini { font-family: var(--font-mono); font-size: 11px; color: var(--anno-tag); background: none; border: none; padding: 0; cursor: pointer; }
-.k-tag-mini:hover { color: #4f46e5; }
-.k-notedel { background: none; border: none; color: var(--n-300); cursor: pointer; padding: 6px 8px; opacity: 0; transition: opacity var(--dur-fast), color var(--dur-fast); }
-.k-noterow:hover .k-notedel { opacity: 1; }
-.k-notedel:hover { color: #ef4444; }
 .k-empty-side { font-size: 12px; color: var(--fg3); padding: 8px 10px; }
 
-.k-side-foot { display: flex; align-items: center; justify-content: space-between; padding: 10px 6px 2px; margin-top: 8px; border-top: 1px solid var(--border); }
 .k-foot-hint { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--fg3); background: none; border: none; cursor: pointer; }
-.k-foot-hint:hover { color: var(--fg2); }
 
 /* ---- Editor island ------------------------------------------------------ */
 .k-editor { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -141,7 +139,6 @@ body {
 /* Button primitives (design system). */
 .k-btn { font-family: var(--font-sans); font-size: 13px; font-weight: 500; border-radius: var(--r-sm); padding: 8px 13px; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
 .k-btn-ghost { background: none; color: var(--fg2); }
-.k-btn-ghost:hover { color: var(--fg1); background: var(--n-100); }
 .k-btn svg { display: block; }
 
 /* Mobile "back to list" bar — hidden on desktop, shown at the phone breakpoint. */
@@ -164,7 +161,7 @@ body {
 .k-pal-list { padding: 6px; max-height: 320px; overflow-y: auto; }
 .k-pal-empty { font-size: 13px; color: var(--fg3); padding: 10px 12px; }
 .k-pal-opt { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; background: none; border: none; padding: 9px 11px; border-radius: var(--r-sm); font-size: 13px; color: var(--fg1); cursor: pointer; }
-.k-pal-opt:hover, .k-pal-opt.sel { background: var(--n-100); }
+.k-pal-opt.sel { background: var(--n-100); }
 .k-pal-kind { font-family: var(--font-mono); font-size: 10px; color: var(--fg3); width: 50px; flex-shrink: 0; }
 .k-pal-kind.kind-def { color: var(--anno-def); }
 .k-pal-kind.kind-section { color: var(--anno-section); }
@@ -175,7 +172,7 @@ body {
 /* ---- Slash menu --------------------------------------------------------- */
 .k-slash { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-popover); padding: 5px; min-width: 180px; animation: krise var(--dur-fast) var(--ease); }
 .k-slash-item { display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; background: none; border: none; padding: 6px 9px; border-radius: var(--r-sm); font-size: 13px; color: var(--fg1); cursor: pointer; gap: 16px; }
-.k-slash-item:hover, .k-slash-item.sel { background: var(--n-100); }
+.k-slash-item.sel { background: var(--n-100); }
 .k-slash-sc { font-family: var(--font-mono); font-size: 11px; color: var(--fg3); }
 .k-slash-empty { font-size: 12px; color: var(--fg3); padding: 6px 9px; }
 
@@ -183,15 +180,22 @@ body {
 .k-anno-preview { position: fixed; z-index: 55; max-width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-popover); overflow: hidden; animation: krise var(--dur-fast) var(--ease); }
 .k-anno-entry { display: block; width: 100%; text-align: left; background: none; border: none; padding: 11px 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
 .k-anno-entry:last-child { border-bottom: none; }
-.k-anno-entry:hover { background: var(--n-50); }
 .k-anno-entry-title { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--fg3); margin-bottom: 4px; }
 .k-anno-entry-line { display: block; font-size: 13px; color: var(--fg1); line-height: 1.4; }
 
 /* ---- Table context menu ------------------------------------------------- */
 .k-menu { position: fixed; z-index: 60; min-width: 176px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-popover); padding: 5px; animation: krise var(--dur-fast) var(--ease); }
-.k-menu-item { display: block; width: 100%; text-align: left; background: none; border: none; padding: 6px 9px; border-radius: var(--r-sm); font-size: 13px; color: var(--fg1); cursor: pointer; }
-.k-menu-item:hover { background: var(--n-100); }
+.k-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: none; padding: 6px 9px; border-radius: var(--r-sm); font-size: 13px; color: var(--fg1); cursor: pointer; }
+.k-menu-item.danger { color: #ef4444; }
+.k-menu-item svg { flex-shrink: 0; }
 .k-menu-sep { border-top: 1px solid var(--border); margin: 5px 0; }
+
+/* ---- Confirm dialog ----------------------------------------------------- */
+.k-confirm-scrim { position: fixed; inset: 0; background: rgba(9,9,11,0.2); z-index: 70; display: flex; align-items: center; justify-content: center; padding: 16px; animation: kfade var(--dur) var(--ease); }
+.k-confirm { width: 100%; max-width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-popover); padding: 20px; animation: krise var(--dur) var(--ease); }
+.k-confirm-msg { margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: var(--fg1); }
+.k-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.k-btn-danger { background: #ef4444; color: #fff; }
 
 @keyframes kfade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes krise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
@@ -231,7 +235,6 @@ body {
 .tiptap .annotation-def     { color: var(--anno-def); }
 .tiptap .annotation-tag     { color: var(--anno-tag); }
 .tiptap .annotation-ref-resolved   { color: var(--anno-ref); cursor: pointer; }
-.tiptap .annotation-ref-resolved:hover { background: var(--anno-ref-bg); }
 .tiptap .annotation-ref-unresolved { color: var(--anno-unres); }
 
 .tiptap a { color: var(--anno-ref); text-decoration: underline; cursor: pointer; }
@@ -257,6 +260,28 @@ body {
 .tiptap td, .tiptap th { border: 1px solid var(--border); padding: 8px 12px; text-align: left; min-width: 80px; }
 .tiptap th { background: var(--surface-sunk); font-weight: 600; font-size: 12px; color: var(--fg2); }
 .tiptap .selectedCell { background: var(--anno-ref-bg); }
+
+/* ============================================================================
+   Hover styles — pointer devices only
+   On touch, :hover is emulated on the first tap and suppresses the click,
+   forcing a second tap to actually activate. Gating hover behind (hover: hover)
+   makes touch taps register immediately. The row delete button is shown by
+   default above and only hidden-until-hover here, so it stays usable on touch.
+   ============================================================================ */
+@media (hover: hover) {
+  .k-newnote:hover { background: #000; }
+  .k-sqbtn:hover { background: var(--n-100); color: var(--fg1); }
+  .k-noterow:hover .k-noterow-fg { background: var(--n-100); }
+  .k-tag-mini:hover { color: #4f46e5; }
+  .k-foot-hint:hover { color: var(--fg2); }
+  .k-btn-ghost:hover { color: var(--fg1); background: var(--n-100); }
+  .k-btn-danger:hover { background: #dc2626; }
+  .k-pal-opt:hover { background: var(--n-100); }
+  .k-slash-item:hover { background: var(--n-100); }
+  .k-anno-entry:hover { background: var(--n-50); }
+  .k-menu-item:hover { background: var(--n-100); }
+  .tiptap .annotation-ref-resolved:hover { background: var(--anno-ref-bg); }
+}
 
 /* ============================================================================
    Responsive — tablet & mobile

@@ -205,6 +205,19 @@ export default function App() {
     editor?.chain().setContent('<p></p>').focus().run()
   }
 
+  // Duplicate a note (content + tags) under a "… copy" title, and open the copy.
+  async function duplicateNote(note: Note) {
+    const copy = {
+      title: note.title ? `${note.title} copy` : '',
+      content: note.content,
+      tags: [...note.tags],
+      created: new Date(),
+      modified: new Date(),
+    }
+    const id = await db.notes.add(copy) as number
+    selectNote({ ...copy, id })
+  }
+
   async function deleteNote(note: Note) {
     // Remove the note and its registry entries together so no orphan annotations linger.
     await db.notes.delete(note.id!)
@@ -362,7 +375,7 @@ export default function App() {
 
   return (
     <div className="k-app" data-view={editorOpen ? 'note' : 'list'}>
-      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} onHelp={showDemo} />
+      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onDuplicate={duplicateNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} onHelp={showDemo} />
       <div className="k-island k-editor">
         {editorOpen && (
           <div className="k-editor-bar">
