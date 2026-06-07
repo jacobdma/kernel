@@ -408,29 +408,32 @@ export default function App() {
             <EditorToolbar editor={editor} />
           </div>
         )}
-        <CommandPalette
-          open={paletteOpen}
-          onClose={() => setPaletteOpen(false)}
-          onSelectNote={selectNote}
-          onSelectEntry={handleSelectEntry}
-        />
-        {settingsOpen && (
-          <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setSettingsOpen(false)} />
-        )}
-        {preview && (
-          <AnnotationPreview
-            entries={preview.entries}
-            x={preview.x}
-            y={preview.y}
-            onSelect={handlePreviewSelect}
-            onMouseEnter={cancelDismiss}
-            onMouseLeave={() => setPreview(null)}
-          />
-        )}
-        {tableMenu && editor && (
-          <TableContextMenu x={tableMenu.x} y={tableMenu.y} editor={editor} onClose={() => setTableMenu(null)} />
-        )}
       </div>
+
+      {/* Fixed overlays live at the app root, not inside .k-editor — on mobile the
+          editor island is display:none in list view, which would hide them. */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onSelectNote={selectNote}
+        onSelectEntry={handleSelectEntry}
+      />
+      {settingsOpen && (
+        <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setSettingsOpen(false)} />
+      )}
+      {preview && (
+        <AnnotationPreview
+          entries={preview.entries}
+          x={preview.x}
+          y={preview.y}
+          onSelect={handlePreviewSelect}
+          onMouseEnter={cancelDismiss}
+          onMouseLeave={() => setPreview(null)}
+        />
+      )}
+      {tableMenu && editor && (
+        <TableContextMenu x={tableMenu.x} y={tableMenu.y} editor={editor} onClose={() => setTableMenu(null)} />
+      )}
     </div>
   )
 }
