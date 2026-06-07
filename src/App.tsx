@@ -30,6 +30,9 @@ import CommandPalette from './CommandPalette'
 import Sidebar from './Sidebar'
 import AnnotationPreview from './AnnotationPreview'
 import TableContextMenu from './TableContextMenu'
+import EditorToolbar from './EditorToolbar'
+import SettingsPanel from './SettingsPanel'
+import { useSettings } from './useSettings'
 
 // Populate the slash-command registry the SlashCommands extension reads from.
 // Done at module load (reset-then-push) so the list survives Fast Refresh
@@ -87,6 +90,8 @@ export default function App() {
   const [tableMenu, setTableMenu] = useState<{ x: number; y: number } | null>(null)
   // Guards the one-time onboarding seed against StrictMode/double-effect re-runs.
   const seededRef = useRef(false)
+  const { settings, setSettings } = useSettings()
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const editor = useEditor({
     extensions: [
@@ -375,7 +380,7 @@ export default function App() {
 
   return (
     <div className="k-app" data-view={editorOpen ? 'note' : 'list'}>
-      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onDuplicate={duplicateNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} onHelp={showDemo} />
+      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onDuplicate={duplicateNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} onHelp={showDemo} onSettings={() => setSettingsOpen(true)} />
       <div className="k-island k-editor">
         {editorOpen && (
           <div className="k-editor-bar">
@@ -398,9 +403,9 @@ export default function App() {
             <p>No note selected</p>
           </div>
         )}
-        {editorOpen && (
+        {editorOpen && editor && (
           <div className="k-editor-foot">
-            <span className="k-foot-hint">Type <span className="k-kbd-cap">/</span> for commands</span>
+            <EditorToolbar editor={editor} />
           </div>
         )}
         <CommandPalette
@@ -409,6 +414,9 @@ export default function App() {
           onSelectNote={selectNote}
           onSelectEntry={handleSelectEntry}
         />
+        {settingsOpen && (
+          <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setSettingsOpen(false)} />
+        )}
         {preview && (
           <AnnotationPreview
             entries={preview.entries}

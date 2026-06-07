@@ -58,10 +58,12 @@ export default function NoteRow({ note, active, onSelect, onDuplicate, onRequest
 
   return (
     <div className={`k-noterow ${active ? 'active' : ''}`} onContextMenu={e => onContextMenu(e, note)}>
-      <div className="k-noterow-actions">
-        <button className="k-rowact dup" aria-label="Duplicate note" onClick={() => { onDuplicate(note); close() }}>{DupIcon}</button>
-        <button className="k-rowact del" aria-label="Delete note" onClick={() => { onRequestDelete(note); close() }}>{TrashIcon}</button>
-      </div>
+      {dx < 0 && (
+        <div className="k-noterow-actions">
+          <button className="k-rowact dup" aria-label="Duplicate note" onClick={() => { onDuplicate(note); close() }}>{DupIcon}</button>
+          <button className="k-rowact del" aria-label="Delete note" onClick={() => { onRequestDelete(note); close() }}>{TrashIcon}</button>
+        </div>
+      )}
       <div
         className="k-noterow-fg"
         style={{ transform: `translateX(${dx}px)`, transition: dragging ? 'none' : undefined }}

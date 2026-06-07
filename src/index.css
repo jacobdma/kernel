@@ -38,8 +38,14 @@
   --anno-ref:     #2563eb;
   --anno-unres:   #686e7b;
   --anno-tag:     #6366f1;
-  --anno-ref-bg:     #eff6ff;
-  --anno-tag-bg:     #eef2ff;
+  /* Soft chip tints derive from their hue so they work in light and dark. */
+  --anno-ref-bg: color-mix(in srgb, var(--anno-ref) 12%, transparent);
+  --anno-tag-bg: color-mix(in srgb, var(--anno-tag) 14%, transparent);
+
+  /* Primary button (New Note): flips to light-on-dark via the ramp in dark. */
+  --primary: var(--ink);
+  --primary-fg: var(--n-0);
+  --primary-hover: #000;
 
   /* Radii */
   --r-xs: 4px;
@@ -61,6 +67,30 @@
   --dur:      180ms;
 }
 
+/* Dark theme — override the neutral ramp + a few tokens; the semantic tokens
+   (--bg, --surface, --fg*, --border) are var(--n-*) so they cascade for free. */
+:root[data-theme="dark"] {
+  /* Neutral black — pure gray, no cool or warm tint (red = green = blue). */
+  --n-0:   #1a1a1a;  /* island surface  */
+  --n-50:  #121212;  /* app canvas      */
+  --n-100: #262626;  /* sunk fill/hover */
+  --n-200: #2e2e2e;  /* hairline border */
+  --n-300: #404040;
+  --n-400: #737373;
+  --n-500: #a1a1a1;
+  --n-800: #e0e0e0;
+  --n-900: #f5f5f5;
+  --ink:   #fafafa;       /* primary button base (light on dark) */
+  --primary-hover: #e5e5e5;
+  /* Brighter annotation hues for legibility on a dark surface. */
+  --anno-title: #f87171;
+  --anno-section: #fbbf24;
+  --anno-def: #4ade80;
+  --anno-ref: #60a5fa;
+  --anno-unres: #8a8a94;
+  --anno-tag: #818cf8;
+}
+
 html, body { margin: 0; height: 100%; }
 body {
   font-family: var(--font-sans);
@@ -80,14 +110,15 @@ body {
 
 /* ---- Sidebar ------------------------------------------------------------ */
 .k-sidebar { width: 248px; flex-shrink: 0; display: flex; flex-direction: column; padding: var(--sp-3); }
-.k-side-head { padding: 4px 4px 12px; }
-.k-brand { display: flex; align-items: center; gap: 9px; }
+.k-side-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 12px; }
 .k-wordmark { font-family: var(--font-mono); font-weight: 600; font-size: 17px; letter-spacing: -0.03em; color: var(--ink); }
+.k-iconbtn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: none; border: none; border-radius: var(--r-sm); color: var(--fg3); cursor: pointer; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
+.k-iconbtn svg { display: block; }
 
 .k-newnote {
   display: flex; align-items: center; gap: 7px;
   width: 100%; font-family: var(--font-sans); font-size: 13px; font-weight: 500;
-  color: #fff; background: var(--ink); white-space: nowrap;
+  color: var(--primary-fg); background: var(--primary); white-space: nowrap;
   border: none; border-radius: var(--r-sm);
   padding: 9px 11px; margin-bottom: 10px; cursor: pointer;
   transition: background var(--dur-fast) var(--ease);
@@ -127,14 +158,20 @@ body {
 .k-tag-mini { font-family: var(--font-mono); font-size: 11px; color: var(--anno-tag); background: none; border: none; padding: 0; cursor: pointer; }
 .k-empty-side { font-size: 12px; color: var(--fg3); padding: 8px 10px; }
 
-.k-foot-hint { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--fg3); background: none; border: none; cursor: pointer; }
 
 /* ---- Editor island ------------------------------------------------------ */
 .k-editor { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .k-editor-scroll { flex: 1; overflow-y: auto; }
 .k-editor-inner { padding: 40px 56px; max-width: 760px; width: 100%; margin: 0 auto; }
 .k-editor-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--fg3); font-size: 14px; }
-.k-editor-foot { border-top: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; }
+.k-editor-foot { border-top: 1px solid var(--border); padding: 6px 10px; display: flex; align-items: center; }
+
+/* Editor toolbar (formatting bar) */
+.k-toolbar { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; }
+.k-tool { flex-shrink: 0; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; border-radius: var(--r-sm); color: var(--fg2); cursor: pointer; font-family: var(--font-mono); font-size: 12px; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
+.k-tool.active { background: var(--n-100); color: var(--fg1); }
+.k-tool svg { display: block; }
+.k-tool-sep { flex-shrink: 0; width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
 
 /* Button primitives (design system). */
 .k-btn { font-family: var(--font-sans); font-size: 13px; font-weight: 500; border-radius: var(--r-sm); padding: 8px 13px; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
@@ -144,13 +181,6 @@ body {
 /* Mobile "back to list" bar — hidden on desktop, shown at the phone breakpoint. */
 .k-editor-bar { display: none; align-items: center; padding: 7px 9px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .k-mobile-back { gap: 6px; }
-
-/* ---- Keyboard cap ------------------------------------------------------- */
-.k-kbd-cap {
-  font-family: var(--font-mono); font-weight: 500; font-size: 11px; color: var(--fg2);
-  background: var(--surface-sunk); border: 1px solid var(--border); border-bottom-width: 2px;
-  border-radius: var(--r-xs); padding: 2px 6px; line-height: 1;
-}
 
 /* ---- Command palette ---------------------------------------------------- */
 .k-pal-scrim { position: fixed; inset: 0; background: rgba(9,9,11,0.2); z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding-top: 14vh; animation: kfade var(--dur) var(--ease); }
@@ -196,6 +226,21 @@ body {
 .k-confirm-msg { margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: var(--fg1); }
 .k-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .k-btn-danger { background: #ef4444; color: #fff; }
+
+/* ---- Settings panel ----------------------------------------------------- */
+.k-settings { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-popover); padding: 18px 20px 20px; animation: krise var(--dur) var(--ease); }
+.k-settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.k-settings-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--fg1); }
+.k-settings-body { display: flex; flex-direction: column; gap: 14px; }
+.k-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.k-settings-label { font-size: 13px; color: var(--fg2); }
+.k-settings-sub { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg3); margin-top: 2px; }
+.k-swatches { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.k-swatch { width: 18px; height: 18px; border-radius: 50%; border: none; padding: 0; cursor: pointer; }
+.k-swatch.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--fg2); }
+.k-segmented { display: flex; gap: 2px; padding: 2px; background: var(--surface-sunk); border: 1px solid var(--border); border-radius: var(--r-sm); }
+.k-seg { font-family: var(--font-sans); font-size: 12px; font-weight: 500; color: var(--fg2); background: none; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
+.k-seg.active { background: var(--surface); color: var(--fg1); box-shadow: var(--shadow-island); }
 
 @keyframes kfade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes krise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
@@ -269,13 +314,15 @@ body {
    default above and only hidden-until-hover here, so it stays usable on touch.
    ============================================================================ */
 @media (hover: hover) {
-  .k-newnote:hover { background: #000; }
+  .k-newnote:hover { background: var(--primary-hover); }
+  .k-iconbtn:hover { background: var(--n-100); color: var(--fg1); }
+  .k-seg:hover { color: var(--fg1); }
   .k-sqbtn:hover { background: var(--n-100); color: var(--fg1); }
   .k-noterow:hover .k-noterow-fg { background: var(--n-100); }
   .k-tag-mini:hover { color: #4f46e5; }
-  .k-foot-hint:hover { color: var(--fg2); }
   .k-btn-ghost:hover { color: var(--fg1); background: var(--n-100); }
   .k-btn-danger:hover { background: #dc2626; }
+  .k-tool:hover { background: var(--n-100); color: var(--fg1); }
   .k-pal-opt:hover { background: var(--n-100); }
   .k-slash-item:hover { background: var(--n-100); }
   .k-anno-entry:hover { background: var(--n-50); }
