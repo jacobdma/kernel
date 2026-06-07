@@ -58,8 +58,18 @@ const ONBOARDING_CONTENT = `<p>@title {Welcome to Kernel}</p>
 <p>@section {Navigation}</p>
 <p>Use ⌘/Ctrl + P to search across all notes and definitions. Click any resolved @ref {annotation} to jump to its source.</p>`
 
+// In-memory resolution for the ephemeral demo so its @ref renders resolved and
+// hover previews work without writing anything to the registry.
+const DEMO_TITLE = 'Welcome to Kernel'
+const DEMO_REGISTRY = [
+  { name: 'annotation', line: '@def {annotation} — a typed label that makes content searchable and linkable.' },
+]
+
 export default function App() {
   const [activeNoteId, setActiveNoteId] = useState<number | null>(null)
+  // Ephemeral demo: shows the onboarding content in the editor without creating
+  // or saving a real note. Opened by the sidebar "?" button.
+  const [demoOpen, setDemoOpen] = useState(false)
   // Mirror of activeNoteId for use inside the editor's onUpdate closure, which
   // captures stale state but always sees the current ref value.
   const activeNoteIdRef = useRef<number | null>(null)
@@ -135,8 +145,10 @@ export default function App() {
   useEffect(() => {
     resolvedNames.clear()
     registryEntries?.forEach(e => resolvedNames.add(e.name))
+    // While the demo is open, resolve its annotations from the in-memory set too.
+    if (demoOpen) DEMO_REGISTRY.forEach(e => resolvedNames.add(e.name))
     if (editor) editor.view.dispatch(editor.state.tr)
-  }, [registryEntries, editor])
+  }, [registryEntries, editor, demoOpen])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -161,21 +173,23 @@ export default function App() {
     if (dismissTimeout.current) clearTimeout(dismissTimeout.current)
   }, [])
 
-  // First-run onboarding: on an empty database, seed the Welcome note and open
-  // it. Runs once the editor exists so selectNote can load the content; guarded
-  // against StrictMode/double-effect reruns.
+  // First-run onboarding: on an empty database, show the ephemeral demo so a new
+  // user sees the guide without a note being created. Runs once the editor exists
+  // (showDemo needs it to set content); guarded against StrictMode reruns.
   useEffect(() => {
     if (!editor || seededRef.current) return
     seededRef.current = true
     db.notes.count().then(count => {
-      if (count === 0) createWelcomeNote()
+      if (count === 0) showDemo()
     })
   }, [editor])
 
   // Keeps the ref and state in sync together; avoids repeating the pair.
+  // Activating any real note (or the list) also exits the ephemeral demo.
   function setActive(id: number | null) {
     activeNoteIdRef.current = id
     setActiveNoteId(id)
+    setDemoOpen(false)
   }
 
   async function createNote() {
@@ -189,26 +203,6 @@ export default function App() {
     setActive(id)
     // Clear the editor and drop the cursor in so the user can type immediately.
     editor?.chain().setContent('<p></p>').focus().run()
-  }
-
-  // Creates the onboarding note (content + registry entries so its @ref resolves)
-  // and opens it. Used by the first-run seed and the sidebar "?" button.
-  async function createWelcomeNote() {
-    const note = {
-      title: 'Welcome to Kernel',
-      content: ONBOARDING_CONTENT,
-      tags: ['getting-started'],
-      created: new Date(),
-      modified: new Date(),
-    }
-    const id = await db.notes.add(note) as number
-    await db.registry.bulkAdd([
-      { name: 'annotation', type: 'def', noteId: id, lineContent: '@def {annotation} — a typed label that makes content searchable and linkable.' },
-      { name: 'Annotations', type: 'section', noteId: id, lineContent: '@section {Annotations}' },
-      { name: 'Slash Commands', type: 'section', noteId: id, lineContent: '@section {Slash Commands}' },
-      { name: 'Navigation', type: 'section', noteId: id, lineContent: '@section {Navigation}' },
-    ])
-    selectNote({ ...note, id })
   }
 
   async function deleteNote(note: Note) {
@@ -237,8 +231,10 @@ export default function App() {
   }
 
   async function handlePreviewSelect(noteId: number, name: string) {
-    await navigateToAnnotation(noteId, name, 100)
     setPreview(null)
+    // Demo mode: the @def lives in the current doc, so just scroll to it.
+    if (demoOpen) { scrollToAnnotation(name); return }
+    await navigateToAnnotation(noteId, name, 100)
   }
 
   function selectNote(note: Note) {
@@ -249,6 +245,14 @@ export default function App() {
   function backToList() {
     setActive(null)
     editor?.commands.setContent('<p></p>')
+  }
+
+  // Open the onboarding content as a throwaway preview: no note is created and
+  // autosave no-ops (activeNoteIdRef stays null), so nothing is persisted.
+  function showDemo() {
+    setActive(null)
+    setDemoOpen(true)
+    editor?.commands.setContent(ONBOARDING_CONTENT)
   }
 
   // Find the @def declaration for `name` in the current doc and scroll it into
@@ -315,6 +319,14 @@ export default function App() {
     const rect = target.getBoundingClientRect()
 
     showTimeout.current = setTimeout(async () => {
+      // Demo mode: resolve from the in-memory registry, never the DB. Only the
+      // @ref preview is supported (what the onboarding text demonstrates).
+      if (demoOpen) {
+        const d = isRef && DEMO_REGISTRY.find(e => e.name === name)
+        if (d) setPreview({ entries: [{ title: DEMO_TITLE, line: d.line, noteId: -1, name }], x: rect.left, y: rect.bottom })
+        return
+      }
+
       // Hovering a @ref: show where it's defined (the matching def/section/title).
       if (isRef) {
         const entry = await db.registry.where('name').equals(name)
@@ -344,11 +356,15 @@ export default function App() {
     setTableMenu({ x: e.clientX, y: e.clientY })
   }
 
+  // The editor pane shows for a real note or the ephemeral demo; otherwise the
+  // empty state. Drives layout (mobile two-view), the back bar, and the footer.
+  const editorOpen = activeNoteId !== null || demoOpen
+
   return (
-    <div className="k-app" data-view={activeNoteId === null ? 'list' : 'note'}>
-      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} onHelp={createWelcomeNote} />
+    <div className="k-app" data-view={editorOpen ? 'note' : 'list'}>
+      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} onHelp={showDemo} />
       <div className="k-island k-editor">
-        {activeNoteId !== null && (
+        {editorOpen && (
           <div className="k-editor-bar">
             <button className="k-btn k-btn-ghost k-mobile-back" onClick={backToList}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -358,18 +374,18 @@ export default function App() {
             </button>
           </div>
         )}
-        {activeNoteId === null ? (
-          <div className="k-editor-empty">
-            <p>No note selected</p>
-          </div>
-        ) : (
+        {editorOpen ? (
           <div className="k-editor-scroll" onMouseMove={handleEditorMouseMove} onContextMenu={handleContextMenu}>
             <div className="k-editor-inner">
               <EditorContent editor={editor} />
             </div>
           </div>
+        ) : (
+          <div className="k-editor-empty">
+            <p>No note selected</p>
+          </div>
         )}
-        {activeNoteId !== null && (
+        {editorOpen && (
           <div className="k-editor-foot">
             <span className="k-foot-hint">Type <span className="k-kbd-cap">/</span> for commands</span>
           </div>
