@@ -16,10 +16,17 @@ React 19 · TypeScript · Vite · TipTap/ProseMirror (editor) · Dexie/IndexedDB
 
 ```bash
 npm install
-npm run dev      # start the dev server
+npm run dev      # start the dev server (Vite HMR)
 npm run build    # type-check + production build
-npm run preview  # serve the production build
+npm run preview  # serve the production build locally
 ```
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `⌘P` / `Ctrl+P` | Open command palette |
+| `/` | Open slash-command menu |
 
 ## Structure
 
@@ -27,3 +34,14 @@ npm run preview  # serve the production build
 - `src/db.ts` — Dexie schema for notes and the annotation registry.
 - `src/Sidebar.tsx` · `CommandPalette.tsx` · `AnnotationPreview.tsx` · `TableContextMenu.tsx` — UI.
 - `src/extensions/` — TipTap extensions: annotation decorations and slash commands.
+- `src/index.css` — design tokens and all component styles (no separate CSS files).
+
+## Annotation syntax
+
+| Annotation | Purpose |
+|---|---|
+| `@title {Name}` | Sets the note title and registers a navigable anchor |
+| `@section {Name}` | Section heading anchor; reachable via `@ref` |
+| `@def {name}` | Defines a term; hover shows all back-references |
+| `@ref {name}` | References a definition; renders resolved/unresolved |
+| `@tag {name}` | Tags the note; filterable in the sidebar |

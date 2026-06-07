@@ -56,13 +56,13 @@ export default function CommandPalette({ open, onClose, onSelectNote, onSelectEn
         </div>
         <div className="k-pal-list">
           {results.length === 0 && <p className="k-pal-empty">No results</p>}
-          {results.map((r, i) => r.kind === 'note' ? (
-            <button key={i} onClick={() => { onSelectNote(r.note); onClose() }} className="k-pal-opt">
+          {results.map((r) => r.kind === 'note' ? (
+            <button key={`note-${r.note.id}`} onClick={() => { onSelectNote(r.note); onClose() }} className="k-pal-opt">
               <span className="k-pal-kind">note</span>
               <span>{r.note.title || 'Untitled'}</span>
             </button>
           ) : (
-            <button key={i} onClick={() => { onSelectEntry(r.entry); onClose() }} className="k-pal-opt">
+            <button key={`reg-${r.entry.id}`} onClick={() => { onSelectEntry(r.entry); onClose() }} className="k-pal-opt">
               <span className={`k-pal-kind kind-${r.entry.type}`}>{r.entry.type}</span>
               <span>{r.entry.name}</span>
             </button>

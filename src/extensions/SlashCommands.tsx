@@ -5,7 +5,7 @@ import type { Editor, Range } from '@tiptap/core'
 import Suggestion from '@tiptap/suggestion'
 import { ReactRenderer } from '@tiptap/react'
 import SlashMenu from '../SlashMenu'
-import type { SlashCommand } from '../SlashMenu'
+import type { SlashCommand, SlashMenuHandle } from '../SlashMenu'
 
 export const COMMANDS: SlashCommand[] = []
 
@@ -22,7 +22,7 @@ export const SlashCommands = Extension.create({
           props.command({ editor, range })
         },
         render: () => {
-          let renderer: ReactRenderer<any>
+          let renderer: ReactRenderer<SlashMenuHandle>
           let popup: HTMLDivElement
           return {
             onStart(props: any) {
@@ -38,7 +38,7 @@ export const SlashCommands = Extension.create({
               const rect = props.clientRect?.()
               if (rect) { popup.style.top = `${rect.bottom + 4}px`; popup.style.left = `${rect.left}px` }
             },
-            onKeyDown: (props: any) => (renderer.ref as any)?.onKeyDown(props) ?? false,
+            onKeyDown: (props: any) => renderer.ref?.onKeyDown(props) ?? false,
             onExit() { popup.remove(); renderer.destroy() },
           }
         },

@@ -140,7 +140,8 @@ export default function App() {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.metaKey && e.key === 'p') { e.preventDefault(); setPaletteOpen(true) }
+      // Support both ⌘P (macOS) and Ctrl+P (Windows/Linux).
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') { e.preventDefault(); setPaletteOpen(true) }
       if (e.key === 'Escape') setPaletteOpen(false)
     }
     window.addEventListener('keydown', onKeyDown)
@@ -171,6 +172,12 @@ export default function App() {
     })
   }, [editor])
 
+  // Keeps the ref and state in sync together; avoids repeating the pair.
+  function setActive(id: number | null) {
+    activeNoteIdRef.current = id
+    setActiveNoteId(id)
+  }
+
   async function createNote() {
     const id = await db.notes.add({
       title: 'Untitled',
@@ -178,9 +185,8 @@ export default function App() {
       tags: [],
       created: new Date(),
       modified: new Date(),
-    })
-    activeNoteIdRef.current = id as number
-    setActiveNoteId(id as number)
+    }) as number
+    setActive(id)
     // Clear the editor and drop the cursor in so the user can type immediately.
     editor?.chain().setContent('<p></p>').focus().run()
   }
@@ -206,41 +212,42 @@ export default function App() {
   }
 
   async function deleteNote(note: Note) {
+    // Remove the note and its registry entries together so no orphan annotations linger.
     await db.notes.delete(note.id!)
+    await db.registry.where('noteId').equals(note.id!).delete()
     if (activeNoteIdRef.current === note.id) {
-      activeNoteIdRef.current = null
-      setActiveNoteId(null)
+      setActive(null)
       editor?.commands.setContent('<p></p>')
     }
   }
 
-  async function handleSelectEntry(entry: RegistryEntry) {
-    const note = await db.notes.get(entry.noteId)
-    if (!note) return
-    selectNote(note)
-    // Delay the scroll so setContent has rendered the new note's nodes before
-    // we search the doc for the target annotation position.
-    setTimeout(() => scrollToAnnotation(entry.name), 300)
-  }
-
-  async function handlePreviewSelect(noteId: number, name: string) {
+  // Navigate to a registry entry: load the note, open it, then scroll to the
+  // annotation. `delay` is 300ms from the palette (setContent must finish
+  // rendering new nodes) and 100ms from the preview popup (note often already
+  // loaded).
+  async function navigateToAnnotation(noteId: number, name: string, delay: number) {
     const note = await db.notes.get(noteId)
     if (!note) return
     selectNote(note)
-    // Shorter delay than handleSelectEntry; the note is often already loaded.
-    setTimeout(() => scrollToAnnotation(name), 100)
+    setTimeout(() => scrollToAnnotation(name), delay)
+  }
+
+  async function handleSelectEntry(entry: RegistryEntry) {
+    await navigateToAnnotation(entry.noteId, entry.name, 300)
+  }
+
+  async function handlePreviewSelect(noteId: number, name: string) {
+    await navigateToAnnotation(noteId, name, 100)
     setPreview(null)
   }
 
   function selectNote(note: Note) {
-    activeNoteIdRef.current = note.id!
-    setActiveNoteId(note.id!)
+    setActive(note.id!)
     editor?.commands.setContent(note.content || '<p></p>')
   }
 
   function backToList() {
-    activeNoteIdRef.current = null
-    setActiveNoteId(null)
+    setActive(null)
     editor?.commands.setContent('<p></p>')
   }
 

@@ -44,7 +44,7 @@ export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch,
     const sorted = orderedIds.map(id => byId.get(id)).filter(Boolean) as Note[]
     const filtered = activeTag ? sorted.filter(n => n.tags.includes(activeTag)) : sorted
 
-  return (
+    return (
     <div className="k-island k-sidebar">
       <div className="k-side-head">
         <div className="k-brand">
@@ -92,5 +92,5 @@ export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch,
         <button onClick={onSearch} className="k-foot-hint">Search</button>
       </div>
     </div>
-  )
+    )
 }
