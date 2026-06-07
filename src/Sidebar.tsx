@@ -11,9 +11,10 @@ interface Props {
     onDelete: (note: Note) => void
     onNew: () => void
     onSearch: () => void
+    onHelp: () => void
 }
 
-export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch }: Props) {
+export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch, onHelp }: Props) {
     const [activeTag, setActiveTag] = useState<string | null>(null)
     const [orderedIds, setOrderedIds] = useState<number[]>([])
     const notes = useLiveQuery(() => db.notes.toArray())
@@ -51,9 +52,12 @@ export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch 
         </div>
       </div>
 
-      <button onClick={onNew} className="k-newnote">
-        <span aria-hidden>+</span> New Note
-      </button>
+      <div className="k-newnote-row">
+        <button onClick={onNew} className="k-newnote">
+          <span aria-hidden>+</span> New Note
+        </button>
+        <button onClick={onHelp} className="k-help" aria-label="Open welcome guide" title="Welcome guide">?</button>
+      </div>
 
       {activeTag && (
         <button onClick={() => setActiveTag(null)} className="k-tagclear">
@@ -86,7 +90,6 @@ export default function Sidebar({ activeId, onSelect, onDelete, onNew, onSearch 
 
       <div className="k-side-foot">
         <button onClick={onSearch} className="k-foot-hint">Search</button>
-        <span className="k-kbd-cap">⌘P</span>
       </div>
     </div>
   )

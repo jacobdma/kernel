@@ -15,6 +15,7 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 
 import { Annotations, resolvedNames } from './extensions/Annotations'
+import { Placeholder } from './extensions/Placeholder'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { SlashCommands, COMMANDS } from './extensions/SlashCommands'
 import { TodoCommand } from './extensions/TodoCommand'
@@ -36,6 +37,27 @@ import TableContextMenu from './TableContextMenu'
 COMMANDS.length = 0
 COMMANDS.push(TodoCommand, CodeCommand, TableCommand, ...FormattingCommands)
 
+// Seeded once into an empty database as an onboarding note (see effect below).
+const ONBOARDING_CONTENT = `<p>@title {Welcome to Kernel}</p>
+<p>@tag {getting-started}</p>
+<p></p>
+<p>@section {Annotations}</p>
+<p>Kernel uses <strong>annotations</strong> to connect ideas across notes. Type @ to start one.</p>
+<p></p>
+<p>@def {annotation} — a typed label that makes content searchable and linkable.</p>
+<p>Try hovering over that @ref {annotation} to see where it's defined.</p>
+<p></p>
+<p>@section {Slash Commands}</p>
+<p>Type / anywhere to open the command menu. A few to try:</p>
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="false"><p>Try /todo to create a task</p></li>
+  <li data-type="taskItem" data-checked="false"><p>Try /table to insert a table</p></li>
+  <li data-type="taskItem" data-checked="false"><p>Try /code to insert a code block</p></li>
+</ul>
+<p></p>
+<p>@section {Navigation}</p>
+<p>Use ⌘/Ctrl + P to search across all notes and definitions. Click any resolved @ref {annotation} to jump to its source.</p>`
+
 export default function App() {
   const [activeNoteId, setActiveNoteId] = useState<number | null>(null)
   // Mirror of activeNoteId for use inside the editor's onUpdate closure, which
@@ -53,6 +75,8 @@ export default function App() {
   const showTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentAnnotation = useRef<string | null>(null)
   const [tableMenu, setTableMenu] = useState<{ x: number; y: number } | null>(null)
+  // Guards the one-time onboarding seed against StrictMode/double-effect re-runs.
+  const seededRef = useRef(false)
 
   const editor = useEditor({
     extensions: [
@@ -60,14 +84,15 @@ export default function App() {
       TaskList, 
       TaskItem.configure({ nested: true }), 
       SlashCommands, 
-      Annotations, 
+      Annotations,
+      Placeholder,
       Link,
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,
     ],
-    content: '<p>Start typing...</p>',
+    content: '<p></p>',
     // Debounced autosave: every keystroke resets a 500ms timer; only the final
     // edit in a burst actually writes to IndexedDB. Also rebuilds this note's
     // registry entries (annotation index) from the current text.
@@ -135,6 +160,17 @@ export default function App() {
     if (dismissTimeout.current) clearTimeout(dismissTimeout.current)
   }, [])
 
+  // First-run onboarding: on an empty database, seed the Welcome note and open
+  // it. Runs once the editor exists so selectNote can load the content; guarded
+  // against StrictMode/double-effect reruns.
+  useEffect(() => {
+    if (!editor || seededRef.current) return
+    seededRef.current = true
+    db.notes.count().then(count => {
+      if (count === 0) createWelcomeNote()
+    })
+  }, [editor])
+
   async function createNote() {
     const id = await db.notes.add({
       title: 'Untitled',
@@ -145,7 +181,28 @@ export default function App() {
     })
     activeNoteIdRef.current = id as number
     setActiveNoteId(id as number)
-    editor?.commands.setContent('<p></p>')
+    // Clear the editor and drop the cursor in so the user can type immediately.
+    editor?.chain().setContent('<p></p>').focus().run()
+  }
+
+  // Creates the onboarding note (content + registry entries so its @ref resolves)
+  // and opens it. Used by the first-run seed and the sidebar "?" button.
+  async function createWelcomeNote() {
+    const note = {
+      title: 'Welcome to Kernel',
+      content: ONBOARDING_CONTENT,
+      tags: ['getting-started'],
+      created: new Date(),
+      modified: new Date(),
+    }
+    const id = await db.notes.add(note) as number
+    await db.registry.bulkAdd([
+      { name: 'annotation', type: 'def', noteId: id, lineContent: '@def {annotation} — a typed label that makes content searchable and linkable.' },
+      { name: 'Annotations', type: 'section', noteId: id, lineContent: '@section {Annotations}' },
+      { name: 'Slash Commands', type: 'section', noteId: id, lineContent: '@section {Slash Commands}' },
+      { name: 'Navigation', type: 'section', noteId: id, lineContent: '@section {Navigation}' },
+    ])
+    selectNote({ ...note, id })
   }
 
   async function deleteNote(note: Note) {
@@ -282,7 +339,7 @@ export default function App() {
 
   return (
     <div className="k-app" data-view={activeNoteId === null ? 'list' : 'note'}>
-      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} />
+      <Sidebar activeId={activeNoteId} onSelect={selectNote} onDelete={deleteNote} onNew={createNote} onSearch={() => setPaletteOpen(true)} onHelp={createWelcomeNote} />
       <div className="k-island k-editor">
         {activeNoteId !== null && (
           <div className="k-editor-bar">

@@ -106,6 +106,16 @@ body {
   transition: background var(--dur-fast) var(--ease);
 }
 .k-newnote:hover { background: #000; }
+.k-newnote-row { display: flex; gap: 7px; margin-bottom: 10px; }
+.k-newnote-row .k-newnote { flex: 1; margin-bottom: 0; }
+.k-help {
+  flex-shrink: 0; width: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 14px; color: var(--fg2);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm);
+  cursor: pointer; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.k-help:hover { background: var(--n-100); color: var(--fg1); }
 
 .k-tagclear {
   display: inline-flex; align-items: center; gap: 4px;
@@ -203,6 +213,8 @@ body {
    Editor (TipTap output)
    ============================================================================ */
 .tiptap { outline: none; font-size: 15px; line-height: 1.7; color: var(--fg1); }
+/* Empty-editor placeholder (see extensions/Placeholder.ts) */
+.tiptap .is-empty::before { content: attr(data-placeholder); color: var(--fg3); float: left; height: 0; pointer-events: none; }
 .tiptap > * + * { margin-top: 0; }
 .tiptap h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 4px 0 14px; }
 .tiptap h2 { font-size: 21px; font-weight: 600; letter-spacing: -0.015em; margin: 26px 0 10px; }
