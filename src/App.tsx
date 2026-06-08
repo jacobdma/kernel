@@ -15,6 +15,7 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 
 import { Annotations, resolvedNames } from './extensions/Annotations'
+import { AnnotationSuggest } from './extensions/AnnotationSuggest'
 import { Placeholder } from './extensions/Placeholder'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { SlashCommands, COMMANDS } from './extensions/SlashCommands'
@@ -100,6 +101,7 @@ export default function App() {
       TaskItem.configure({ nested: true }), 
       SlashCommands, 
       Annotations,
+      AnnotationSuggest,
       Placeholder,
       Link,
       Table.configure({ resizable: true }),
