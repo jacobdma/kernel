@@ -80,7 +80,7 @@ export default function App() {
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const registryEntries = useLiveQuery(() => db.registry.toArray(), [])
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [preview, setPreview] = useState<{ entries: { title: string; line: string; noteId: number; name: string }[]; x: number; y: number } | null>(null)
+  const [preview, setPreview] = useState<{ entries: { title: string; line: string; noteId: number; name: string }[]; heading?: string; x: number; y: number } | null>(null)
   // Hover-preview timing refs (see handleEditorMouseMove for the state machine):
   // dismissTimeout closes the preview after the cursor leaves an annotation,
   // showTimeout delays opening it, and currentAnnotation tracks which
@@ -304,6 +304,16 @@ export default function App() {
     if (dismissTimeout.current) clearTimeout(dismissTimeout.current)
   }
 
+  // Every @ref that points at `name`, with the source note title + line. Shared
+  // by the @def hover preview and the click-triggered backlinks popover.
+  async function fetchBacklinks(name: string) {
+    const refs = await db.registry.where('name').equals(name).filter(e => e.type === 'ref').toArray()
+    if (!refs.length) return []
+    const ids = [...new Set(refs.map(r => r.noteId))]
+    const notesById = new Map((await db.notes.bulkGet(ids)).map((n, i) => [ids[i], n] as const))
+    return refs.map(r => ({ title: notesById.get(r.noteId)?.title ?? 'Untitled', line: r.lineContent, noteId: r.noteId, name }))
+  }
+
   // Hover-preview state machine driven by mousemove over the editor. Three cases:
   //  - cursor left every annotation: cancel any pending show, start dismiss timer
   //  - cursor still over the same annotation: no-op (guarded by currentAnnotation)
@@ -311,6 +321,8 @@ export default function App() {
   function handleEditorMouseMove(e: React.MouseEvent) {
     const target = e.target as HTMLElement
     const isDef = target.classList.contains('annotation-def')
+      || target.classList.contains('annotation-section')
+      || target.classList.contains('annotation-title')
     const isRef = target.classList.contains('annotation-ref-resolved')
 
     if (!isDef && !isRef) {
@@ -322,7 +334,7 @@ export default function App() {
       return
     }
 
-    const match = target.textContent?.match(/@(?:def|ref)\s+\{([^}]+)\}/)
+    const match = target.textContent?.match(/@(?:def|section|title|ref)\s+\{([^}]+)\}/)
     if (!match) return
     const name = match[1]
 
@@ -356,16 +368,10 @@ export default function App() {
         setPreview({ entries: [{ title: note?.title ?? 'Untitled', line: entry.lineContent, noteId: entry.noteId, name }], x: rect.left, y: rect.bottom })
       }
 
-      // Hovering a @def: show every @ref that points back at this definition.
+      // Hovering a definition: show every @ref that points back at it.
       if (isDef) {
-        const refs = await db.registry.where('name').equals(name).filter(e => e.type === 'ref').toArray()
-        if (!refs.length) return
-        // Several refs can share a note, so fetch each note once and look titles
-        // up from a map rather than re-querying per ref.
-        const ids = [...new Set(refs.map(r => r.noteId))]
-        const notesById = new Map((await db.notes.bulkGet(ids)).map((n, i) => [ids[i], n] as const))
-        const entries = refs.map(r => ({ title: notesById.get(r.noteId)?.title ?? 'Untitled', line: r.lineContent, noteId: r.noteId, name }))
-        setPreview({ entries, x: rect.left, y: rect.bottom })
+        const entries = await fetchBacklinks(name)
+        if (entries.length) setPreview({ entries, heading: `Referenced by (${entries.length})`, x: rect.left, y: rect.bottom })
       }
     }, 200)
   }
@@ -426,6 +432,7 @@ export default function App() {
       {preview && (
         <AnnotationPreview
           entries={preview.entries}
+          heading={preview.heading}
           x={preview.x}
           y={preview.y}
           onSelect={handlePreviewSelect}

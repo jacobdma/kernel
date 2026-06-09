@@ -210,6 +210,7 @@ body {
 .k-anno-preview { position: fixed; z-index: 55; max-width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-popover); overflow: hidden; animation: krise var(--dur-fast) var(--ease); }
 .k-anno-entry { display: block; width: 100%; text-align: left; background: none; border: none; padding: 11px 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
 .k-anno-entry:last-child { border-bottom: none; }
+.k-anno-head { font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--fg3); padding: 9px 13px 7px; border-bottom: 1px solid var(--border); }
 .k-anno-entry-title { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--fg3); margin-bottom: 4px; }
 .k-anno-entry-line { display: block; font-size: 13px; color: var(--fg1); line-height: 1.4; }
 

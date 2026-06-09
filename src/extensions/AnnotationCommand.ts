@@ -1,18 +1,17 @@
-// The five annotation types offered by the '@' autocomplete. Each inserts the
-// scaffold `@<type> {}` and leaves the cursor inside the braces. Reuses the
-// SlashCommand shape + SlashMenu so the popup matches the '/' command menu.
+// Annotation types offered by the '@' menu, plus the insert helper. Picking a
+// type inserts the scaffold `@<type> {}` (cursor inside the braces); picking a
+// name for `ref` inserts the completed `@ref {name}`.
 import type { Editor, Range } from '@tiptap/core'
-import type { SlashCommand } from '../SlashMenu'
 
-const TYPES = ['title', 'section', 'def', 'ref', 'tag'] as const
+export type AnnoType = 'title' | 'section' | 'def' | 'ref' | 'tag'
+export const ANNO_TYPES: AnnoType[] = ['title', 'section', 'def', 'ref', 'tag']
 
-function insertAnnotation(editor: Editor, range: Range, type: string) {
+export function insertAnnotation(editor: Editor, range: Range, type: AnnoType, name?: string) {
+  if (type === 'ref' && name) {
+    editor.chain().focus().deleteRange(range).insertContent(`@ref {${name}}`).run()
+    return
+  }
   editor.chain().focus().deleteRange(range).insertContent(`@${type} {}`).run()
   // Drop the cursor between the braces so the name can be typed immediately.
   editor.commands.setTextSelection(editor.state.selection.from - 1)
 }
-
-export const ANNOTATIONS: SlashCommand[] = TYPES.map(type => ({
-  label: `@${type}`,
-  command: ({ editor, range }) => insertAnnotation(editor, range, type),
-}))

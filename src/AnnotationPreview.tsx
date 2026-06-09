@@ -10,6 +10,7 @@ interface Entry {
 
 interface Props {
   entries: Entry[]
+  heading?: string
   x: number
   y: number
   onSelect: (noteId: number, name: string) => void
@@ -17,7 +18,7 @@ interface Props {
   onMouseLeave: () => void
 }
 
-export default function AnnotationPreview({ entries, x, y, onSelect, onMouseEnter, onMouseLeave }: Props) {
+export default function AnnotationPreview({ entries, heading, x, y, onSelect, onMouseEnter, onMouseLeave }: Props) {
   return (
     <div
       className="k-anno-preview"
@@ -25,6 +26,7 @@ export default function AnnotationPreview({ entries, x, y, onSelect, onMouseEnte
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
+      {heading && <div className="k-anno-head">{heading}</div>}
       {entries.map((e, i) => (
         <div key={i} onClick={() => onSelect(e.noteId, e.name)} className="k-anno-entry">
           <span className="k-anno-entry-title">{e.title}</span>
